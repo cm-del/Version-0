@@ -1,4 +1,7 @@
 <resources>
-    <string name="app_name">إدارة مزرعة الدواجن</string>
-    <string name="home_tagline">إدارة احترافية لمزرعة التسمين، أونلاين وأوفلاين.</string>
+    <string name="app_name">مدير مزرعة الدواجن</string>
+    <string name="welcome_message">إدارة الدورات والسجلات اليومية ومؤشرات الأداء مع دعم العمل بدون إنترنت.</string>
+    <string name="open_daily_log">فتح السجل اليومي</string>
+    <string name="daily_log_title">السجل اليومي</string>
+    <string name="daily_log_hint">تسجيل النفوق والعلف والبيئة والملاحظات.</string>
 </resources>
