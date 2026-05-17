@@ -3,38 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إدارة مزرعة الدواجن - متعدد العنابر</title>
+  <title>إدارة مزرعة الدواجن - متعدد العنابر ومخزن أعلاف</title>
   <link rel="stylesheet" href="style.css">
-  <!-- رسم بياني من CDN (يلزم إنترنت أول مرة) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>🐔 إدارة مزرعة دواجن التسمين</h1>
+    <h1>🐔 مزرعة دواجن التسمين</h1>
 
-    <!-- شريط التبويبات السفلي -->
+    <!-- التبويبات -->
     <div class="tabs">
-      <button id="tabDaily" class="tab active" onclick="showTab('daily')">📋 السجل اليومي</button>
+      <button id="tabDaily" class="tab active" onclick="showTab('daily')">📋 اليومي</button>
+      <button id="tabWarehouse" class="tab" onclick="showTab('warehouse')">🏭 المخزن</button>
       <button id="tabLoans" class="tab" onclick="showTab('loans')">💰 السلف</button>
-      <button id="tabCharts" class="tab" onclick="showTab('charts')">📊 الرسوم البيانية</button>
+      <button id="tabCharts" class="tab" onclick="showTab('charts')">📊 الرسوم</button>
     </div>
 
-    <!-- التبويب 1: السجل اليومي -->
+    <!-- ========== تبويب السجل اليومي ========== -->
     <div id="dailySection" class="section">
-      <!-- اختيار العنبر -->
-      <div class="house-selector">
-        <label for="houseSelect">العنبر:</label>
+      <!-- اختيار وإدارة العنابر -->
+      <div class="house-panel">
+        <label>العنبر:</label>
         <select id="houseSelect"></select>
-        <button onclick="addHouse()">➕ إضافة عنبر</button>
+        <button onclick="addHouse()" class="btn-sm">➕ عنبر</button>
+        <button onclick="editHouse()" class="btn-sm">✏️ تعديل</button>
       </div>
+      <div id="houseInfo" class="info-box"></div>
+
+      <hr>
 
       <!-- نموذج الإدخال اليومي -->
       <form id="dailyForm">
         <label for="date">التاريخ</label>
         <input type="date" id="date" required>
 
-        <label for="feedBags">العلف (عدد الشكاير)</label>
-        <input type="number" id="feedBags" step="any" value="0" min="0" placeholder="الشكارة = 50 كجم">
+        <label for="feedType">نوع العلف</label>
+        <select id="feedType" required>
+          <option value="starter">بادي (بادئ)</option>
+          <option value="grower">نامي</option>
+          <option value="finisher">ناهي</option>
+        </select>
+        <small id="feedStockHint" style="color:#2d6a4f;"></small>
+
+        <label for="feedBags">عدد الشكاير المصروفة</label>
+        <input type="number" id="feedBags" step="any" value="0" min="0" required>
 
         <label for="dead">النافق اليوم</label>
         <input type="number" id="dead" value="0" min="0">
@@ -42,24 +54,26 @@
         <label for="medications">الأدوية المستخدمة</label>
         <input type="text" id="medications" placeholder="أسماء الأدوية">
 
-        <label for="expenses">مصروفات اليوم</label>
-        <input type="number" id="expenses" step="any" value="0" min="0" placeholder="ج.م">
+        <label for="expenses">مصروفات اليوم (ج.م)</label>
+        <input type="number" id="expenses" step="any" value="0" min="0">
 
         <label for="weight">متوسط وزن الطائر (جرام)</label>
         <input type="number" id="weight" step="any" placeholder="مثال: 2100">
 
         <label for="mortalityNotes">ملاحظات النافق</label>
-        <textarea id="mortalityNotes" rows="2" placeholder="سبب النافق أو ملاحظات..."></textarea>
+        <textarea id="mortalityNotes" rows="2" placeholder="سبب النافق..."></textarea>
 
         <button type="submit">💾 حفظ السجل</button>
       </form>
 
-      <!-- جدول سجلات العنبر المختار -->
+      <!-- جدول السجلات اليومية للعنبر المختار -->
       <h3>آخر السجلات - <span id="currentHouseTitle"></span></h3>
       <table id="recordsTable">
         <thead>
           <tr>
             <th>التاريخ</th>
+            <th>العمر</th>
+            <th>نوع العلف</th>
             <th>شكاير</th>
             <th>كجم</th>
             <th>النافق</th>
@@ -72,9 +86,34 @@
         </thead>
         <tbody id="tableBody"></tbody>
       </table>
+
+      <!-- ملخص الأداء للعنبر المختار -->
+      <div class="performance-box" id="performanceBox">
+        <h4>📈 مؤشرات الأداء</h4>
+        <div id="performanceContent">اختر عنبرًا لعرض المؤشرات</div>
+      </div>
     </div>
 
-    <!-- التبويب 2: السلف الأسبوعية -->
+    <!-- ========== تبويب المخزن ========== -->
+    <div id="warehouseSection" class="section" style="display:none;">
+      <h2>🏭 مخزن الأعلاف (الشكاير)</h2>
+      <div id="warehouseStock"></div>
+      <hr>
+      <h3>إضافة أعلاف للمخزن</h3>
+      <form id="warehouseForm">
+        <label for="whType">نوع العلف</label>
+        <select id="whType">
+          <option value="starter">بادي</option>
+          <option value="grower">نامي</option>
+          <option value="finisher">ناهي</option>
+        </select>
+        <label for="whBags">عدد الشكاير</label>
+        <input type="number" id="whBags" min="1" value="1" required>
+        <button type="submit">➕ إضافة للمخزن</button>
+      </form>
+    </div>
+
+    <!-- ========== تبويب السلف ========== -->
     <div id="loansSection" class="section" style="display:none;">
       <h2>💰 سلف أسبوعية (كل جمعة)</h2>
       <form id="loanForm">
@@ -88,14 +127,12 @@
       </form>
       <h3>جميع السلفات</h3>
       <table id="loansTable">
-        <thead>
-          <tr><th>التاريخ</th><th>الشخص</th><th>المبلغ</th><th>حذف</th></tr>
-        </thead>
+        <thead><tr><th>التاريخ</th><th>الشخص</th><th>المبلغ</th><th>حذف</th></tr></thead>
         <tbody id="loansBody"></tbody>
       </table>
     </div>
 
-    <!-- التبويب 3: الرسوم البيانية -->
+    <!-- ========== تبويب الرسوم البيانية ========== -->
     <div id="chartsSection" class="section" style="display:none;">
       <h2>📊 الرسوم البيانية</h2>
       <div class="chart-controls">

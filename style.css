@@ -7,10 +7,10 @@ body {
   color: #333;
 }
 h1 { text-align: center; color: #2d6a4f; margin-bottom: 10px; }
-h2 { color: #2d6a4f; }
+h2 { color: #2d6a4f; margin-top: 0; }
 .container { max-width: 650px; margin: 0 auto; }
 
-/* شريط التبويبات */
+/* تبويبات */
 .tabs {
   display: flex;
   justify-content: space-around;
@@ -22,12 +22,12 @@ h2 { color: #2d6a4f; }
 }
 .tab {
   flex: 1;
-  padding: 12px 5px;
+  padding: 10px 4px;
   border: none;
   background: #e9ecef;
   font-weight: bold;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 .tab.active { background: #2d6a4f; color: #fff; }
 
@@ -39,29 +39,24 @@ h2 { color: #2d6a4f; }
   margin-bottom: 20px;
 }
 
-/* اختيار العنبر */
-.house-selector {
+.house-panel {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 6px;
   flex-wrap: wrap;
+  margin-bottom: 10px;
 }
-.house-selector select {
-  flex: 1;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-.house-selector button {
-  padding: 8px 12px;
+.house-panel select { flex: 2; padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+.btn-sm {
+  padding: 6px 10px;
   background: #2d6a4f;
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 6px;
+  font-size: 0.8rem;
 }
+.info-box { font-size: 0.9rem; background: #e9f5ee; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
 
-/* نماذج */
 label { display: block; margin-top: 10px; font-weight: bold; }
 input, textarea, select {
   width: 100%;
@@ -71,7 +66,6 @@ input, textarea, select {
   border-radius: 6px;
   font-size: 1rem;
 }
-button[type="submit"], button { cursor: pointer; }
 button[type="submit"] {
   background: #2d6a4f;
   color: white;
@@ -81,36 +75,42 @@ button[type="submit"] {
   border-radius: 6px;
   font-size: 1rem;
   width: 100%;
+  cursor: pointer;
 }
 
 /* جداول */
 table {
   width: 100%;
-  background: #fff;
   border-collapse: collapse;
   margin-top: 10px;
 }
 th, td {
-  padding: 8px 5px;
+  padding: 7px 4px;
   text-align: center;
   border-bottom: 1px solid #eee;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 th { background: #2d6a4f; color: white; }
 button.delete-btn {
   background: #e63946;
   color: white;
   border: none;
-  padding: 5px 8px;
+  padding: 4px 7px;
   border-radius: 4px;
 }
 
-/* الرسوم البيانية */
-.chart-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
+/* المخزن */
+#warehouseStock { font-size: 0.95rem; margin-bottom: 10px; }
+
+/* ملخص الأداء */
+.performance-box {
+  background: #f0fdf4;
+  border: 1px solid #2d6a4f;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 20px;
 }
-.chart-controls select { flex: 1; padding: 8px; }
+.performance-box h4 { margin: 0 0 8px 0; }
+
+.chart-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
 canvas { width: 100% !important; height: auto !important; }
