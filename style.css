@@ -73,3 +73,25 @@ th { background: var(--primary); color: white; }
 .performance-box {
   background: #f0fdf4; border: 1px solid var(--primary); border-radius: 8px; padding: 12px; margin-top: 20px;
 }
+
+/* تنسيقات التقويم */
+.date-picker-content { padding: 10px !important; }
+.date-picker-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+}
+#monthYearDisplay { font-weight: bold; font-size: 1.1rem; }
+.date-picker-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;
+}
+.date-picker-grid .day-header {
+  font-weight: bold; color: var(--primary); padding: 5px 0; font-size: 0.8rem;
+}
+.date-picker-grid .day-cell {
+  padding: 10px 0; border-radius: 50%; cursor: pointer; font-size: 0.9rem;
+}
+.date-picker-grid .day-cell:hover { background: #e9f5ee; }
+.date-picker-grid .day-cell.selected { background: var(--primary); color: white; }
+.date-picker-grid .day-cell.empty { cursor: default; }
+.date-picker-actions {
+  display: flex; justify-content: space-between; margin-top: 15px;
+}

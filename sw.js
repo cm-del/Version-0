@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poultry-farm-v4';
+const CACHE_NAME = 'poultry-farm-v5';
 const urlsToCache = [
   '.',
   'index.html',

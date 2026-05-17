@@ -9,12 +9,27 @@
   <meta name="theme-color" content="#1b4332">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    /* أيقونة الدجاجة كـ SVG مضمّن للشعار */
+    .app-logo { width: 48px; height: 48px; vertical-align: middle; margin-left: 10px; }
+  </style>
 </head>
 <body>
   <div id="offlineBar" class="offline-bar">أنت غير متصل بالإنترنت</div>
   <div id="alertBar" class="alert-bar" style="display:none"></div>
 
   <div class="app-container">
+    <header style="text-align:center;padding:10px 0;">
+      <svg class="app-logo" viewBox="0 0 64 64" fill="none">
+        <circle cx="32" cy="32" r="30" fill="#2d6a4f" />
+        <path d="M20 32c0-6 8-12 12-12s12 6 12 12-8 12-12 12-12-6-12-12z" fill="#fff" />
+        <circle cx="28" cy="30" r="2" fill="#1b4332" />
+        <circle cx="36" cy="30" r="2" fill="#1b4332" />
+        <path d="M26 36c2 2 6 2 8 0" stroke="#1b4332" stroke-width="2" stroke-linecap="round" />
+        <path d="M38 24l6-4" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <h1 style="display:inline;color:#1b4332;font-size:1.4rem;">مزرعة دواجن</h1>
+    </header>
     <main id="mainContent" class="main-content"></main>
 
     <nav class="bottom-nav">
@@ -152,6 +167,22 @@
       <h3>اختر الأعمدة</h3>
       <div id="columnChecks"></div>
       <button class="btn-block" onclick="applyColumns()">تم</button>
+    </div>
+  </div>
+
+  <!-- نافذة تقويم دورة (لموبايل) -->
+  <div id="datePickerModal" class="modal" style="display:none">
+    <div class="modal-content date-picker-content">
+      <div class="date-picker-header">
+        <button class="icon-btn" id="prevMonth">◀</button>
+        <span id="monthYearDisplay"></span>
+        <button class="icon-btn" id="nextMonth">▶</button>
+      </div>
+      <div class="date-picker-grid" id="dateGrid"></div>
+      <div class="date-picker-actions">
+        <button id="clearDateBtn" class="secondary">إلغاء</button>
+        <button id="confirmDateBtn">تأكيد</button>
+      </div>
     </div>
   </div>
 

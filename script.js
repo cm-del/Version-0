@@ -33,7 +33,7 @@ async function saveData(data) {
   });
 }
 
-// ========== البيانات ==========
+// ========== البيانات العامة ==========
 let houses = [];
 let dailyRecords = [];
 let loans = [];
@@ -50,6 +50,12 @@ let columnVisibility = {
   dead: true, medications: true, expenses: true, weight: true,
   mortalityNotes: true
 };
+
+// متغيرات التقويم
+let datePickerCallback = null;
+let currentDisplayMonth = new Date().getMonth();
+let currentDisplayYear = new Date().getFullYear();
+let selectedPickerDate = null;
 
 // ========== تحميل / حفظ ==========
 async function loadDataFromDB() {
@@ -87,7 +93,7 @@ function estimateFeed(ageDays, birds) {
   return (gramPerBird * birds) / 1000 / 50;
 }
 
-// ========== التنقل ==========
+// ========== التنقل بين التبويبات ==========
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -145,6 +151,86 @@ function showDashboard() {
   renderTab('dashboard');
   document.querySelector('.nav-btn[data-tab="dashboard"]').classList.add('active');
 }
+
+// ========== التقويم المخصص للدورة ==========
+function openDatePicker(callback, initialDateStr) {
+  datePickerCallback = callback;
+  const initial = initialDateStr ? new Date(initialDateStr) : new Date();
+  currentDisplayYear = initial.getFullYear();
+  currentDisplayMonth = initial.getMonth();
+  selectedPickerDate = initialDateStr ? initial : null;
+  renderCalendar();
+  document.getElementById('datePickerModal').style.display = 'flex';
+}
+
+function renderCalendar() {
+  const monthYear = document.getElementById('monthYearDisplay');
+  const grid = document.getElementById('dateGrid');
+  monthYear.textContent = `${currentDisplayYear} / ${currentDisplayMonth + 1}`;
+
+  const firstDay = new Date(currentDisplayYear, currentDisplayMonth, 1).getDay();
+  const daysInMonth = new Date(currentDisplayYear, currentDisplayMonth + 1, 0).getDate();
+
+  const weekDays = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'];
+  let html = '';
+  weekDays.forEach(day => {
+    html += `<div class="day-header">${day}</div>`;
+  });
+
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="day-cell empty"></div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateObj = new Date(currentDisplayYear, currentDisplayMonth, day);
+    const dateStr = dateObj.toISOString().slice(0,10);
+    const isSelected = selectedPickerDate && selectedPickerDate.toISOString().slice(0,10) === dateStr;
+    html += `<div class="day-cell${isSelected ? ' selected' : ''}" data-date="${dateStr}">${day}</div>`;
+  }
+
+  grid.innerHTML = html;
+
+  grid.querySelectorAll('.day-cell:not(.empty)').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const dateStr = cell.dataset.date;
+      selectedPickerDate = new Date(dateStr);
+      renderCalendar();
+    });
+  });
+
+  document.getElementById('prevMonth').onclick = () => {
+    if (currentDisplayMonth === 0) {
+      currentDisplayYear--;
+      currentDisplayMonth = 11;
+    } else {
+      currentDisplayMonth--;
+    }
+    renderCalendar();
+  };
+
+  document.getElementById('nextMonth').onclick = () => {
+    if (currentDisplayMonth === 11) {
+      currentDisplayYear++;
+      currentDisplayMonth = 0;
+    } else {
+      currentDisplayMonth++;
+    }
+    renderCalendar();
+  };
+}
+
+document.getElementById('confirmDateBtn').addEventListener('click', () => {
+  if (selectedPickerDate && datePickerCallback) {
+    datePickerCallback(selectedPickerDate.toISOString().slice(0,10));
+  }
+  document.getElementById('datePickerModal').style.display = 'none';
+  datePickerCallback = null;
+});
+
+document.getElementById('clearDateBtn').addEventListener('click', () => {
+  document.getElementById('datePickerModal').style.display = 'none';
+  datePickerCallback = null;
+});
 
 // ========== السجل اليومي ==========
 function setupDailyTab() {
@@ -208,16 +294,15 @@ function editCycleDate() {
   const house = houses.find(h => h.name === currentHouse);
   const cycle = house?.cycles?.find(c => c.id === currentCycleId);
   if (!cycle) return;
-  const newDate = prompt('تاريخ بداية الدورة (YYYY-MM-DD):', cycle.startDate);
-  if (newDate) {
-    cycle.startDate = newDate.trim();
+  openDatePicker((newDate) => {
+    cycle.startDate = newDate;
     persistData().then(() => {
       updateCycleSelect();
       updateHouseInfo();
       renderDailyTable();
       updatePerformance();
     });
-  }
+  }, cycle.startDate);
 }
 
 function addHouse() {
@@ -235,23 +320,24 @@ function addCycle() {
   if (!currentHouse) { alert('اختر عنبراً أولاً'); return; }
   const house = houses.find(h => h.name === currentHouse);
   if (!house) return;
-  const start = prompt('تاريخ البداية (YYYY-MM-DD):', '');
-  const count = parseInt(prompt('العدد الأولي:', '0')) || 0;
-  const weight = parseFloat(prompt('الوزن الابتدائي (جرام):', '40')) || 0;
-  house.cycles = house.cycles || [];
-  house.cycles.forEach(c => c.isActive = false);
-  house.cycles.push({
-    id: Date.now().toString(),
-    startDate: start,
-    initialCount: count,
-    initialWeight: weight,
-    isActive: true
-  });
-  persistData().then(() => {
-    updateCycleSelect();
-    updateHouseInfo();
-    renderDailyTable();
-    updatePerformance();
+  openDatePicker((startDate) => {
+    const count = parseInt(prompt('العدد الأولي:', '0')) || 0;
+    const weight = parseFloat(prompt('الوزن الابتدائي (جرام):', '40')) || 0;
+    house.cycles = house.cycles || [];
+    house.cycles.forEach(c => c.isActive = false);
+    house.cycles.push({
+      id: Date.now().toString(),
+      startDate: startDate,
+      initialCount: count,
+      initialWeight: weight,
+      isActive: true
+    });
+    persistData().then(() => {
+      updateCycleSelect();
+      updateHouseInfo();
+      renderDailyTable();
+      updatePerformance();
+    });
   });
 }
 
@@ -638,7 +724,7 @@ function startQRImport() {
   ).catch(err => alert('خطأ في الكاميرا: ' + err));
 }
 
-// ========== تنبيهات ==========
+// ========== تنبيهات محسنة ==========
 function checkAlerts() {
   let alerts = [];
   for (let t in stock) if (stock[t] < 3) alerts.push(`نقص ${getArabicFeedName(t)}: ${stock[t]} ش`);
@@ -669,7 +755,7 @@ function checkAlerts() {
   }
 }
 
-// ========== نسخ احتياطي ==========
+// ========== نسخ احتياطي تلقائي (جمعة) ==========
 function autoBackupPrompt() {
   const today = new Date();
   if (today.getDay() === 5) {
@@ -700,11 +786,11 @@ function setupMore() {
   document.getElementById('importFile').addEventListener('change', importAllData);
 }
 
-// ========== اتصال ==========
+// ========== حالة الاتصال ==========
 window.addEventListener('online', () => document.getElementById('offlineBar').style.display = 'none');
 window.addEventListener('offline', () => document.getElementById('offlineBar').style.display = 'block');
 
-// ========== بدء ==========
+// ========== بدء التطبيق ==========
 async function init() {
   await loadDataFromDB();
   renderTab('dashboard');
