@@ -1,0 +1,16 @@
+{
+  "name": "مزرعة دواجن احترافي",
+  "short_name": "مزرعة الدواجن",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#1b4332",
+  "description": "تطبيق إدارة مزرعة دواجن التسمين",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAOISURBVHic7d0xbBxFFAfw34SQhB0dUlRUREhOkSJFihTFDjZ2ikQWCAlUqVJFix07duzYsWP/wQ47dmz+YMfOH+ywc45EiRIpUiQkUP5vYblscrnc7d7c7M7fz/r4+PZmd3fvm9n3ZgOBEEIIIYQQQgghhPAPeTObXDQ/4UHc3p+NRX9kZpmkU3TWzC6Xz05N89+dSCbRafU3G4iTaed2PlMXdDUgYifN7BMz6zSdsO5+bS/mgr4UdM/RMbPec44jB8c5bKYYE0eK+RPA/Dm/yWQlBR91J5nhcwoDZ1PRWeFMDAw3Lw4KAc6BEXw+J2RRCZIDLcB5Po+KYd3b5xB5//V4+TB3B+68HhXCTifZR7w/DwLvJE+A7btSAxjDF3KqWFQ6DsF2CRgpAFbo3vG2F/03OcygFoBRClACC1CAErP/7EMWoAQtQAla1AL+dbmBJQCstLVGz5hZwT+L0a06bZMLH23A0l3bNOjfk3JbT44Y3s4tHQCbLRtIAmIjaFsVkNIlT0Ecf7nsu0pPlybIbgWJihGp6Y6OExKqQA4kjQ1G2/5msJLneBFbOsRY7dGigOXMl0P+ntXWH72/PAWA7gDTHMh2ODZozWFhK9nMSW4acEeS/5cANoDFpu15bq3+6P3lKQBD5zU1Jt3Uzut7T4gQ2wHY6jQAe3FfCDE4BE+8TRqAywDcGlsEolN7AGwEUK4FUBGTAHpOAXAfgKcAHgJ4p+4d56cAPK/35wG8C+AxAE+GG7dNkx7w9p7fa9i8d3vNVif9rYH9G8FuC7kTnT8bY+QlrnMmGnp+1k6HMnnT/b8L0Xs6Zb2dh3RojDHX/T4tghrqFAkCYHQkFNp0ztVbAx0A54zBNwB27FQYjvH9Y+0bH8oA5DxpmxiTBBhg6zzJawARQHhL3mg4l5cBvMlnAOBIkQCtPFsD6Pt2mhzUCtaNFgA6ThqBZs+TdpeJvrPf7ACZ9j1fe16SzifV95nIFOHcpHfJY2l37QP2GJ1wnLMYkkXnLZJ0Rqb+vGFQAdYPnIdB66cJ0KbPzcn2CX1uFpe9TA8c0k5rCov/0MxGxhPEEJHz/6YLUBDbxN6B9aLGFAqwNnhELQQnsF71XhsoKLcIx+EEJ/BHd2DMk6c3IYQQQgghhBBCiHL+B9u9s8m0rRXEAAAAAElFTkSuQmCC",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
