@@ -2,113 +2,100 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إدارة مزرعة الدواجن - احترافي</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>مزرعة دواجن - احترافي</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2d6a4f">
+  <meta name="theme-color" content="#1b4332">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-  <div class="container">
-    <h1>🐔 مزرعة دواجن التسمين</h1>
 
-    <!-- التبويبات -->
-    <div class="tabs">
-      <button class="tab active" onclick="showTab('daily')">📋 اليومي</button>
-      <button class="tab" onclick="showTab('warehouse')">🏭 المخزن</button>
-      <button class="tab" onclick="showTab('loans')">💰 السلف</button>
-      <button class="tab" onclick="showTab('charts')">📊 الرسوم</button>
-      <button class="tab" onclick="showTab('reports')">📈 التقارير</button>
-      <button class="tab" onclick="showTab('settings')">⚙️ الإعدادات</button>
-    </div>
+  <!-- شريط عدم الاتصال -->
+  <div id="offlineBar" class="offline-bar">أنت غير متصل بالإنترنت</div>
 
-    <!-- ========== تبويب السجل اليومي ========== -->
-    <div id="dailySection" class="section">
+  <!-- شريط التنبيهات -->
+  <div id="alertBar" class="alert-bar" style="display:none"></div>
+
+  <div class="app-container">
+    <!-- المحتوى الرئيسي (يتغير حسب التبويب) -->
+    <main id="mainContent" class="main-content"></main>
+
+    <!-- شريط التنقل السفلي -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="daily">📋 اليومي</button>
+      <button class="nav-btn" data-tab="warehouse">🏭 المخزن</button>
+      <button class="nav-btn" data-tab="loans">💰 السلف</button>
+      <button class="nav-btn" data-tab="charts">📊 الرسوم</button>
+      <button class="nav-btn" data-tab="more">⚙️ المزيد</button>
+    </nav>
+  </div>
+
+  <!-- محتوى التبويبات (مُخزن في قوالب) -->
+  <div style="display:none" id="templates">
+    <!-- تبويب اليومي -->
+    <div id="dailyTemplate">
       <div class="house-panel">
-        <label>العنبر:</label>
         <select id="houseSelect"></select>
-        <button onclick="addHouse()" class="btn-sm">➕ عنبر</button>
-        <button onclick="editHouse()" class="btn-sm">✏️ تعديل</button>
+        <button class="icon-btn" onclick="addHouse()">➕</button>
+        <button class="icon-btn" onclick="editHouse()">✏️</button>
       </div>
       <div id="houseInfo" class="info-box"></div>
-
+      <div class="cycle-panel">
+        <label>الدورة:</label>
+        <select id="cycleSelect"></select>
+        <button class="icon-btn" onclick="addCycle()">➕ دورة</button>
+      </div>
       <hr>
-
       <form id="dailyForm">
-        <input type="hidden" id="editingId" value="">
+        <input type="hidden" id="editingId">
         <label for="date">التاريخ</label>
         <input type="date" id="date" required>
-
         <label for="feedType">نوع العلف</label>
         <select id="feedType" required>
           <option value="starter">بادي</option>
           <option value="grower">نامي</option>
           <option value="finisher">ناهي</option>
         </select>
-        <small id="feedStockHint" style="color:#2d6a4f;"></small>
-
+        <small id="feedStockHint"></small>
         <label for="feedBags">عدد الشكاير</label>
         <input type="number" id="feedBags" step="any" value="0" min="0" required>
-
+        <small id="feedEstimateHint"></small>
         <label for="dead">النافق اليوم</label>
         <input type="number" id="dead" value="0" min="0">
-
-        <label for="medications">الأدوية المستخدمة</label>
+        <label for="medications">الأدوية</label>
         <input type="text" id="medications" placeholder="أسماء الأدوية">
-
-        <label for="expenses">مصروفات اليوم (ج.م)</label>
-        <input type="number" id="expenses" step="any" value="0" min="0">
-
-        <label for="weight">متوسط وزن الطائر (جرام)</label>
+        <label for="expenses">مصروفات (ج.م)</label>
+        <input type="number" id="expenses" step="any" value="0">
+        <label for="weight">متوسط الوزن (جرام)</label>
         <input type="number" id="weight" step="any" placeholder="مثال: 2100">
-
         <label for="mortalityNotes">ملاحظات النافق</label>
         <textarea id="mortalityNotes" rows="2" placeholder="سبب النافق..."></textarea>
-
-        <button type="submit" id="formSubmitBtn">💾 حفظ السجل</button>
-        <button type="button" id="cancelEditBtn" style="display:none; background:#e76f51;" onclick="cancelEdit()">إلغاء التعديل</button>
+        <button type="submit" id="formSubmitBtn">💾 حفظ</button>
+        <button type="button" id="cancelEditBtn" class="secondary" style="display:none" onclick="cancelEdit()">إلغاء</button>
       </form>
-
-      <div class="table-actions">
-        <h3>آخر السجلات - <span id="currentHouseTitle"></span></h3>
-        <div>
-          <button class="btn-sm" onclick="exportTableCSV()">📥 CSV</button>
-          <button class="btn-sm" onclick="printTable()">🖨️ PDF</button>
-        </div>
+      <div class="table-header">
+        <h3>سجلات <span id="currentHouseTitle"></span></h3>
+        <button class="text-btn" onclick="toggleColumnPicker()">⚙️ أعمدة</button>
       </div>
-
-      <table id="recordsTable">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>العمر</th>
-            <th>نوع العلف</th>
-            <th>شكاير</th>
-            <th>كجم</th>
-            <th>النافق</th>
-            <th>الأدوية</th>
-            <th>مصروفات</th>
-            <th>الوزن</th>
-            <th>ملاحظات</th>
-            <th>تعديل</th>
-            <th>حذف</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-
+      <div class="table-responsive">
+        <table id="recordsTable">
+          <thead id="recordsTableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
       <div class="performance-box" id="performanceBox">
-        <h4>📈 مؤشرات الأداء</h4>
-        <div id="performanceContent">اختر عنبرًا لعرض المؤشرات</div>
+        <h4>📈 مؤشرات</h4>
+        <div id="performanceContent"></div>
       </div>
     </div>
 
-    <!-- ========== تبويب المخزن ========== -->
-    <div id="warehouseSection" class="section" style="display:none;">
+    <!-- تبويب المخزن -->
+    <div id="warehouseTemplate">
       <h2>🏭 مخزن الأعلاف</h2>
       <div id="warehouseStock"></div>
       <hr>
-      <h3>إضافة أعلاف للمخزن</h3>
       <form id="warehouseForm">
         <label for="whType">نوع العلف</label>
         <select id="whType">
@@ -122,19 +109,19 @@
       </form>
     </div>
 
-    <!-- ========== تبويب السلف ========== -->
-    <div id="loansSection" class="section" style="display:none;">
+    <!-- تبويب السلف -->
+    <div id="loansTemplate">
       <h2>💰 سلف أسبوعية</h2>
       <form id="loanForm">
-        <input type="hidden" id="editingLoanId" value="">
+        <input type="hidden" id="editingLoanId">
         <label for="loanDate">التاريخ</label>
         <input type="date" id="loanDate" required>
         <label for="loanPerson">اسم الشخص</label>
-        <input type="text" id="loanPerson" placeholder="اسم العامل" required>
+        <input type="text" id="loanPerson" required>
         <label for="loanAmount">المبلغ (ج.م)</label>
         <input type="number" id="loanAmount" step="any" required>
-        <button type="submit" id="loanSubmitBtn">💾 حفظ السلفة</button>
-        <button type="button" id="cancelLoanEditBtn" style="display:none; background:#e76f51;" onclick="cancelLoanEdit()">إلغاء</button>
+        <button type="submit" id="loanSubmitBtn">💾 حفظ</button>
+        <button type="button" id="cancelLoanEditBtn" class="secondary" style="display:none" onclick="cancelLoanEdit()">إلغاء</button>
       </form>
       <h3>جميع السلفات</h3>
       <table id="loansTable">
@@ -143,12 +130,12 @@
       </table>
     </div>
 
-    <!-- ========== تبويب الرسوم البيانية ========== -->
-    <div id="chartsSection" class="section" style="display:none;">
+    <!-- تبويب الرسوم البيانية -->
+    <div id="chartsTemplate">
       <h2>📊 الرسوم البيانية</h2>
       <div class="chart-controls">
-        <label for="chartHouseSelect">العنبر:</label>
-        <select id="chartHouseSelect"></select>
+        <label>العنابر:</label>
+        <div id="chartHouseCheckboxes" class="checkbox-group"></div>
         <label for="chartType">نوع الرسم:</label>
         <select id="chartType">
           <option value="weight">الوزن</option>
@@ -159,21 +146,45 @@
       <canvas id="myChart" width="300" height="200"></canvas>
     </div>
 
-    <!-- ========== تبويب التقارير ========== -->
-    <div id="reportsSection" class="section" style="display:none;">
-      <h2>📈 تقارير الأداء</h2>
-      <div id="reportsContent">تحميل...</div>
+    <!-- تبويب المزيد (الإعدادات + التقارير) -->
+    <div id="moreTemplate">
+      <h2>⚙️ الإعدادات و التقارير</h2>
+      <div class="settings-section">
+        <button class="btn-block" onclick="showReports()">📈 التقارير العامة</button>
+        <button class="btn-block" onclick="exportAllData()">💾 تصدير كل البيانات</button>
+        <button class="btn-block" onclick="document.getElementById('importFile').click()">📂 استيراد بيانات</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(event)">
+        <details>
+          <summary>📥 تصدير منفصل</summary>
+          <button class="btn-block" onclick="exportData('houses')">🏠 العنابر والدورات</button>
+          <button class="btn-block" onclick="exportData('dailyRecords')">📋 السجلات اليومية</button>
+          <button class="btn-block" onclick="exportData('loans')">💰 السلف</button>
+          <button class="btn-block" onclick="exportData('stock')">🏭 المخزن</button>
+        </details>
+        <details>
+          <summary>📂 استيراد منفصل</summary>
+          <input type="file" id="importHouses" accept=".json" onchange="importData('houses', this)">
+          <input type="file" id="importDaily" accept=".json" onchange="importData('dailyRecords', this)">
+          <input type="file" id="importLoans" accept=".json" onchange="importData('loans', this)">
+          <input type="file" id="importStock" accept=".json" onchange="importData('stock', this)">
+        </details>
+        <button class="btn-block danger" onclick="clearAllData()">🗑️ مسح جميع البيانات</button>
+        <hr>
+        <button class="btn-block" id="installBtn" style="display:none" onclick="installApp()">📲 تثبيت التطبيق</button>
+      </div>
+      <div id="reportsContainer" style="display:none;">
+        <button class="text-btn" onclick="hideReports()">⬅ رجوع</button>
+        <div id="reportsContent"></div>
+      </div>
     </div>
+  </div>
 
-    <!-- ========== تبويب الإعدادات ========== -->
-    <div id="settingsSection" class="section" style="display:none;">
-      <h2>⚙️ إدارة البيانات</h2>
-      <button class="btn-block" onclick="exportAllData()">💾 تصدير جميع البيانات (JSON)</button>
-      <button class="btn-block" onclick="document.getElementById('importFile').click()">📂 استيراد بيانات (JSON)</button>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(event)">
-      <button class="btn-block danger" onclick="clearAllData()">🗑️ مسح جميع البيانات</button>
-      <hr>
-      <button class="btn-block" id="installBtn" style="display:none" onclick="installApp()">📲 تثبيت التطبيق</button>
+  <!-- نافذة اختيار الأعمدة -->
+  <div id="columnPickerModal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h3>اختر الأعمدة الظاهرة</h3>
+      <div id="columnChecks"></div>
+      <button class="btn-block" onclick="applyColumns()">تم</button>
     </div>
   </div>
 

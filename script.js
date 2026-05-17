@@ -1,19 +1,17 @@
-// ---------- IndexedDB Wrapper ----------
-const DB_NAME = 'PoultryFarmDB';
+// ========== IndexedDB ==========
+const DB_NAME = 'PoultryFarmDBv3';
 const DB_VERSION = 1;
 const STORE_NAME = 'appState';
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (e) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
       const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
+      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
 }
 
@@ -33,21 +31,33 @@ async function saveData(data) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    const req = store.put(data, 'data');
-    req.onsuccess = resolve;
-    req.onerror = reject;
+    store.put(data, 'data');
+    tx.oncomplete = resolve;
+    tx.onerror = reject;
   });
 }
 
-// ---------- المتغيرات العامة ----------
-let houses = [];
-let dailyRecords = [];
+// ========== البيانات العامة ==========
+let houses = [];            // { name, cycles: [{ id, startDate, initialCount, initialWeight, isActive }] }
+let dailyRecords = [];     // { id, house, cycleId, date, feedType, feedBags, dead, medications, expenses, weight, mortalityNotes }
 let loans = [];
 let stock = { starter: 0, grower: 0, finisher: 0 };
-let currentHouse = null;
-let chartInstance = null;
 
-// ---------- تحميل / حفظ البيانات ----------
+let currentHouse = null;
+let currentCycleId = null;
+let editingId = null;
+let editingLoanId = null;
+let chartInstance = null;
+let deferredPrompt = null;
+
+// إعدادات الأعمدة (حالة الظهور)
+let columnVisibility = {
+  age: true, feedType: true, feedBags: true, kg: true,
+  dead: true, medications: true, expenses: true, weight: true,
+  mortalityNotes: true
+};
+
+// ========== تحميل / حفظ ==========
 async function loadDataFromDB() {
   const data = await getData();
   houses = data.houses || [];
@@ -55,140 +65,263 @@ async function loadDataFromDB() {
   loans = data.loans || [];
   stock = data.stock || { starter: 0, grower: 0, finisher: 0 };
 }
+
 async function persistData() {
   await saveData({ houses, dailyRecords, loans, stock });
 }
 
-// ---------- إدارة العنابر ----------
-function populateHouseSelects() {
-  const dailySelect = document.getElementById('houseSelect');
-  const chartSelect = document.getElementById('chartHouseSelect');
-  dailySelect.innerHTML = chartSelect.innerHTML = '';
-  if (houses.length === 0) {
-    dailySelect.innerHTML = '<option value="">-- لا يوجد عنابر --</option>';
-    chartSelect.innerHTML = '<option value="">-- لا يوجد عنابر --</option>';
-  } else {
-    houses.forEach(h => {
-      const opt = `<option value="${h.name}">${h.name}</option>`;
-      dailySelect.innerHTML += opt;
-      chartSelect.innerHTML += opt;
-    });
-  }
-  if (currentHouse && houses.some(h => h.name === currentHouse)) {
-    dailySelect.value = currentHouse;
-  } else if (houses.length > 0) {
+// ========== دوال مساعدة ==========
+function getArabicFeedName(t) {
+  return { starter: 'بادي', grower: 'نامي', finisher: 'ناهي' }[t] || t;
+}
+
+function getActiveCycle(house) {
+  return house.cycles?.find(c => c.isActive);
+}
+
+// ========== التبويبات والتنقل ==========
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    renderTab(tab);
+  });
+});
+
+function renderTab(tab) {
+  const main = document.getElementById('mainContent');
+  const tpl = document.getElementById(tab + 'Template');
+  if (!tpl) return;
+  main.innerHTML = tpl.innerHTML;
+  if (tab === 'daily') setupDailyTab();
+  else if (tab === 'warehouse') setupWarehouseTab();
+  else if (tab === 'loans') setupLoansTab();
+  else if (tab === 'charts') setupChartsTab();
+  else if (tab === 'more') setupMoreTab();
+  checkAlerts();
+}
+
+// ========== إعداد التبويبات ==========
+function setupDailyTab() {
+  populateHouseSelect();
+  document.getElementById('houseSelect').addEventListener('change', onHouseChange);
+  document.getElementById('cycleSelect')?.addEventListener('change', onCycleChange);
+  document.getElementById('feedType').addEventListener('change', updateFeedHintAndEstimate);
+  document.getElementById('dailyForm').addEventListener('submit', onDailySubmit);
+  document.getElementById('date').addEventListener('change', updateFeedEstimate);
+  document.getElementById('houseSelect').dispatchEvent(new Event('change'));
+  updateFeedHintAndEstimate();
+  document.getElementById('date').valueAsDate = new Date();
+}
+
+function setupWarehouseTab() {
+  renderWarehouse();
+  document.getElementById('warehouseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const type = document.getElementById('whType').value;
+    const bags = parseFloat(document.getElementById('whBags').value) || 0;
+    if (bags <= 0) return;
+    stock[type] += bags;
+    await persistData();
+    renderWarehouse();
+    e.target.reset();
+    document.getElementById('whBags').value = 1;
+    checkAlerts();
+  });
+}
+
+function setupLoansTab() {
+  document.getElementById('loanForm').addEventListener('submit', onLoanSubmit);
+  renderLoansTable();
+  document.getElementById('loanDate').valueAsDate = new Date();
+}
+
+function setupChartsTab() {
+  const container = document.getElementById('chartHouseCheckboxes');
+  container.innerHTML = '';
+  houses.forEach(h => {
+    container.innerHTML += `<label><input type="checkbox" class="chart-house-cb" value="${h.name}" checked> ${h.name}</label>`;
+  });
+  document.getElementById('chartType').addEventListener('change', drawChart);
+  document.querySelectorAll('.chart-house-cb').forEach(cb => cb.addEventListener('change', drawChart));
+  drawChart();
+}
+
+function setupMoreTab() {
+  document.getElementById('installBtn').style.display = deferredPrompt ? 'block' : 'none';
+  document.getElementById('importFile').addEventListener('change', importAllData);
+}
+
+// ========== العنابر والدورات ==========
+function populateHouseSelect() {
+  const sel = document.getElementById('houseSelect');
+  if (!sel) return;
+  sel.innerHTML = houses.length ? houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('') : '<option>لا عنابر</option>';
+  if (currentHouse && houses.some(h => h.name === currentHouse)) sel.value = currentHouse;
+  else if (houses.length) {
     currentHouse = houses[0].name;
-    dailySelect.value = currentHouse;
+    sel.value = currentHouse;
   }
+}
+
+function onHouseChange() {
+  currentHouse = this.value;
+  updateCycleSelect();
   updateHouseInfo();
-  updateCurrentHouseTitle();
+  renderDailyTable();
+  updatePerformance();
+  document.getElementById('currentHouseTitle').textContent = currentHouse || '';
+  updateFeedEstimate();
+}
+
+function updateCycleSelect() {
+  const sel = document.getElementById('cycleSelect');
+  if (!sel) return;
+  const house = houses.find(h => h.name === currentHouse);
+  if (!house || !house.cycles) { sel.innerHTML = '<option>لا دورات</option>'; currentCycleId = null; return; }
+  sel.innerHTML = house.cycles.map(c => `<option value="${c.id}" ${c.isActive ? 'selected' : ''}>${c.startDate} - ${c.initialCount} طائر</option>`).join('');
+  const active = getActiveCycle(house);
+  currentCycleId = active ? active.id : (house.cycles[0]?.id || null);
+  if (active) sel.value = active.id;
+}
+
+function onCycleChange() {
+  currentCycleId = this.value;
+  renderDailyTable();
+  updatePerformance();
+  updateFeedEstimate();
 }
 
 function updateHouseInfo() {
-  const infoDiv = document.getElementById('houseInfo');
-  if (!currentHouse) { infoDiv.textContent = 'لا يوجد عنبر مختار'; return; }
+  const div = document.getElementById('houseInfo');
+  if (!div) return;
   const house = houses.find(h => h.name === currentHouse);
-  if (!house) return;
-  const start = house.startDate || 'غير محدد';
-  const initialCount = house.initialCount || 0;
-  const initialWeight = house.initialWeight || 0;
-  infoDiv.innerHTML = `بداية الدورة: ${start} | العدد الأولي: ${initialCount} | الوزن الابتدائي: ${initialWeight} جم`;
+  if (!house) { div.textContent = ''; return; }
+  const cycle = house.cycles?.find(c => c.id === currentCycleId);
+  if (!cycle) { div.textContent = 'لا دورة نشطة'; return; }
+  div.innerHTML = `بداية: ${cycle.startDate} | العدد الأولي: ${cycle.initialCount} | الوزن الابتدائي: ${cycle.initialWeight} جم`;
 }
 
 function addHouse() {
-  const name = prompt('اسم العنبر الجديد:');
-  if (!name || !name.trim()) return;
-  const trimmed = name.trim();
-  if (houses.some(h => h.name === trimmed)) { alert('موجود'); return; }
-  const startDate = prompt('تاريخ بداية الدورة (YYYY-MM-DD):', '');
-  const initialCount = parseInt(prompt('عدد الكتاكيت الأولي:', '0')) || 0;
-  const initialWeight = parseFloat(prompt('متوسط الوزن الابتدائي (جرام):', '40')) || 0;
-  houses.push({ name: trimmed, startDate, initialCount, initialWeight });
-  persistData().then(populateHouseSelects);
+  const name = prompt('اسم العنبر:');
+  if (!name?.trim()) return;
+  if (houses.some(h => h.name === name.trim())) { alert('موجود'); return; }
+  houses.push({ name: name.trim(), cycles: [] });
+  persistData().then(() => {
+    populateHouseSelect();
+    addCycle(); // إضافة أول دورة مباشرة
+  });
 }
 
 function editHouse() {
-  if (!currentHouse) { alert('اختر عنبراً'); return; }
+  if (!currentHouse) return;
   const house = houses.find(h => h.name === currentHouse);
   if (!house) return;
-  const newStart = prompt('تاريخ بداية الدورة (YYYY-MM-DD):', house.startDate || '');
-  if (newStart !== null) house.startDate = newStart.trim();
-  const newCount = prompt('عدد الكتاكيت الأولي:', house.initialCount || 0);
-  if (newCount !== null) house.initialCount = parseInt(newCount) || 0;
-  const newWeight = prompt('متوسط الوزن الابتدائي (جرام):', house.initialWeight || 40);
-  if (newWeight !== null) house.initialWeight = parseFloat(newWeight) || 0;
+  const newName = prompt('الاسم الجديد:', house.name);
+  if (newName && newName.trim() && newName.trim() !== house.name) {
+    house.name = newName.trim();
+    dailyRecords.forEach(r => { if (r.house === currentHouse) r.house = house.name; });
+    currentHouse = house.name;
+  }
   persistData().then(() => {
+    populateHouseSelect();
+    renderDailyTable();
+  });
+}
+
+function addCycle() {
+  if (!currentHouse) { alert('اختر عنبراً أولاً'); return; }
+  const house = houses.find(h => h.name === currentHouse);
+  if (!house) return;
+  const start = prompt('تاريخ البداية (YYYY-MM-DD):', '');
+  const count = parseInt(prompt('العدد الأولي:', '0')) || 0;
+  const weight = parseFloat(prompt('الوزن الابتدائي (جرام):', '40')) || 0;
+  house.cycles = house.cycles || [];
+  // تعطيل الدورات السابقة
+  house.cycles.forEach(c => c.isActive = false);
+  house.cycles.push({
+    id: Date.now().toString(),
+    startDate: start,
+    initialCount: count,
+    initialWeight: weight,
+    isActive: true
+  });
+  persistData().then(() => {
+    updateCycleSelect();
     updateHouseInfo();
     renderDailyTable();
     updatePerformance();
   });
 }
 
-document.getElementById('houseSelect').addEventListener('change', function() {
-  currentHouse = this.value;
-  updateHouseInfo();
-  updateCurrentHouseTitle();
-  renderDailyTable();
-  updatePerformance();
-});
-
-function updateCurrentHouseTitle() {
-  document.getElementById('currentHouseTitle').textContent = currentHouse || '---';
-}
-
-// ---------- عمر الكتكوت ----------
-function getChickAge(recordDate, houseStart) {
-  if (!recordDate || !houseStart) return '';
-  const d1 = new Date(recordDate);
-  const d2 = new Date(houseStart);
-  if (isNaN(d1) || isNaN(d2)) return '';
-  const diffTime = d1 - d2;
-  if (diffTime < 0) return '';
-  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-}
-
-// ---------- السجل اليومي ----------
-document.getElementById('feedType').addEventListener('change', updateFeedHint);
-function updateFeedHint() {
-  const type = document.getElementById('feedType').value;
-  const bags = stock[type] || 0;
-  document.getElementById('feedStockHint').textContent = `الرصيد: ${bags} شيكارة`;
-}
-
-// تعديل وحفظ
-let editingId = null;
-
-document.getElementById('dailyForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  if (!currentHouse) { alert('اختر عنبراً'); return; }
-  const feedType = document.getElementById('feedType').value;
-  const feedBags = parseFloat(document.getElementById('feedBags').value) || 0;
-  if (feedBags <= 0) { alert('عدد الشكاير يجب أن يكون أكبر من صفر'); return; }
-
-  // في حالة التعديل: نعيد الفرق للمخزن
-  if (editingId) {
-    const oldRec = dailyRecords.find(r => r.id === editingId);
-    if (!oldRec) return;
-    // نعيد الكمية القديمة للمخزن
-    stock[oldRec.feedType] = (stock[oldRec.feedType] || 0) + oldRec.feedBags;
+// ========== السجل اليومي ==========
+function updateFeedHintAndEstimate() {
+  const type = document.getElementById('feedType')?.value;
+  if (type) {
+    document.getElementById('feedStockHint').textContent = `الرصيد: ${stock[type] || 0} ش`;
   }
+  updateFeedEstimate();
+}
 
-  if (stock[feedType] < feedBags) {
-    alert(`الرصيد غير كافٍ. المتاح: ${stock[feedType]} شيكارة`);
-    if (editingId) {
-      // نرجع الكمية القديمة أيضاً لأننا فشلنا في الحفظ
-      const oldRec = dailyRecords.find(r => r.id === editingId);
-      if (oldRec) stock[oldRec.feedType] = (stock[oldRec.feedType] || 0) - oldRec.feedBags;
-    }
+function updateFeedEstimate() {
+  const hint = document.getElementById('feedEstimateHint');
+  if (!hint) return;
+  const house = houses.find(h => h.name === currentHouse);
+  const cycle = house?.cycles?.find(c => c.id === currentCycleId);
+  if (!cycle || !document.getElementById('date').value) {
+    hint.textContent = '';
     return;
   }
+  const age = getChickAge(document.getElementById('date').value, cycle.startDate);
+  if (age === '') { hint.textContent = ''; return; }
+  const deadTotal = dailyRecords.filter(r => r.house === currentHouse && r.cycleId === currentCycleId).reduce((s, r) => s + r.dead, 0);
+  const birdsNow = Math.max(0, cycle.initialCount - deadTotal);
+  const estBags = estimateFeed(age, birdsNow);
+  hint.textContent = `المقترح اليوم: حوالي ${estBags.toFixed(1)} ش`;
+}
 
-  // خصم المخزن
+function estimateFeed(ageDays, birds) {
+  // جداول تقريبية (جرام/طائر/يوم) و تحويل لشكاير
+  let gramPerBird = 50;
+  if (ageDays <= 10) gramPerBird = 30;
+  else if (ageDays <= 20) gramPerBird = 70;
+  else if (ageDays <= 30) gramPerBird = 110;
+  else gramPerBird = 150;
+  const kgTotal = (gramPerBird * birds) / 1000;
+  return kgTotal / 50; // شكاير
+}
+
+function getChickAge(dateStr, startStr) {
+  if (!dateStr || !startStr) return '';
+  const d1 = new Date(dateStr), d2 = new Date(startStr);
+  if (isNaN(d1) || isNaN(d2)) return '';
+  const diff = d1 - d2;
+  if (diff < 0) return '';
+  return Math.floor(diff / 86400000) + 1;
+}
+
+async function onDailySubmit(e) {
+  e.preventDefault();
+  if (!currentHouse || !currentCycleId) { alert('اختر عنبر ودورة'); return; }
+  const feedType = document.getElementById('feedType').value;
+  const feedBags = parseFloat(document.getElementById('feedBags').value) || 0;
+  if (feedBags <= 0) { alert('عدد الشكاير غير صحيح'); return; }
+
+  if (editingId) {
+    const old = dailyRecords.find(r => r.id === editingId);
+    if (old) stock[old.feedType] += old.feedBags;
+  }
+  if (stock[feedType] < feedBags) {
+    alert('الرصيد غير كاف');
+    return;
+  }
   stock[feedType] -= feedBags;
 
-  const record = {
+  const rec = {
     id: editingId || Date.now(),
     house: currentHouse,
+    cycleId: currentCycleId,
     date: document.getElementById('date').value,
     feedType,
     feedBags,
@@ -200,152 +333,133 @@ document.getElementById('dailyForm').addEventListener('submit', async function(e
   };
 
   if (editingId) {
-    const index = dailyRecords.findIndex(r => r.id === editingId);
-    if (index > -1) dailyRecords[index] = record;
+    const idx = dailyRecords.findIndex(r => r.id === editingId);
+    if (idx > -1) dailyRecords[idx] = rec;
     editingId = null;
     document.getElementById('editingId').value = '';
-    document.getElementById('formSubmitBtn').textContent = '💾 حفظ السجل';
+    document.getElementById('formSubmitBtn').textContent = '💾 حفظ';
     document.getElementById('cancelEditBtn').style.display = 'none';
   } else {
-    dailyRecords.push(record);
+    dailyRecords.push(rec);
   }
-
   await persistData();
   renderDailyTable();
   updatePerformance();
-  updateFeedHint();
-  this.reset();
-  document.getElementById('date').valueAsDate = new Date();
-});
-
-function cancelEdit() {
-  editingId = null;
-  document.getElementById('editingId').value = '';
-  document.getElementById('formSubmitBtn').textContent = '💾 حفظ السجل';
-  document.getElementById('cancelEditBtn').style.display = 'none';
-  document.getElementById('dailyForm').reset();
+  updateFeedHintAndEstimate();
+  e.target.reset();
   document.getElementById('date').valueAsDate = new Date();
 }
 
 function editDailyRecord(id) {
   const rec = dailyRecords.find(r => r.id === id);
   if (!rec) return;
-  document.getElementById('editingId').value = rec.id;
   editingId = rec.id;
+  document.getElementById('editingId').value = rec.id;
   document.getElementById('date').value = rec.date;
   document.getElementById('feedType').value = rec.feedType;
   document.getElementById('feedBags').value = rec.feedBags;
   document.getElementById('dead').value = rec.dead;
-  document.getElementById('medications').value = rec.medications || '';
+  document.getElementById('medications').value = rec.medications;
   document.getElementById('expenses').value = rec.expenses;
-  document.getElementById('weight').value = rec.weight || '';
-  document.getElementById('mortalityNotes').value = rec.mortalityNotes || '';
-  document.getElementById('formSubmitBtn').textContent = '✏️ تحديث السجل';
+  document.getElementById('weight').value = rec.weight;
+  document.getElementById('mortalityNotes').value = rec.mortalityNotes;
+  document.getElementById('formSubmitBtn').textContent = '✏️ تحديث';
   document.getElementById('cancelEditBtn').style.display = 'inline-block';
-  updateFeedHint();
+  updateFeedHintAndEstimate();
 }
 
-function deleteDailyRecord(id) {
+function cancelEdit() {
+  editingId = null;
+  document.getElementById('editingId').value = '';
+  document.getElementById('formSubmitBtn').textContent = '💾 حفظ';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  document.getElementById('dailyForm').reset();
+  document.getElementById('date').valueAsDate = new Date();
+}
+
+async function deleteDailyRecord(id) {
   if (!confirm('حذف السجل؟')) return;
   const rec = dailyRecords.find(r => r.id === id);
-  if (rec) {
-    // إعادة الكمية للمخزن
-    stock[rec.feedType] = (stock[rec.feedType] || 0) + rec.feedBags;
-  }
+  if (rec) stock[rec.feedType] += rec.feedBags;
   dailyRecords = dailyRecords.filter(r => r.id !== id);
-  persistData().then(() => {
-    renderDailyTable();
-    updatePerformance();
-    updateFeedHint();
-  });
+  await persistData();
+  renderDailyTable();
+  updatePerformance();
+  updateFeedHintAndEstimate();
 }
 
 function renderDailyTable() {
   const tbody = document.getElementById('tableBody');
-  tbody.innerHTML = '';
-  if (!currentHouse) return;
+  const thead = document.getElementById('recordsTableHead');
+  if (!tbody || !thead) return;
   const house = houses.find(h => h.name === currentHouse);
+  const cycle = house?.cycles?.find(c => c.id === currentCycleId);
   const filtered = dailyRecords
-    .filter(r => r.house === currentHouse)
-    .sort((a, b) => a.date.localeCompare(b.date) * -1); // الأحدث أولاً
+    .filter(r => r.house === currentHouse && r.cycleId === currentCycleId)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
+  // بناء رأس الجدول حسب الأعمدة المختارة
+  let headHTML = '<tr><th>التاريخ</th>';
+  if (columnVisibility.age) headHTML += '<th>العمر</th>';
+  if (columnVisibility.feedType) headHTML += '<th>نوع العلف</th>';
+  if (columnVisibility.feedBags) headHTML += '<th>شكاير</th>';
+  if (columnVisibility.kg) headHTML += '<th>كجم</th>';
+  if (columnVisibility.dead) headHTML += '<th>النافق</th>';
+  if (columnVisibility.medications) headHTML += '<th>أدوية</th>';
+  if (columnVisibility.expenses) headHTML += '<th>مصروفات</th>';
+  if (columnVisibility.weight) headHTML += '<th>الوزن</th>';
+  if (columnVisibility.mortalityNotes) headHTML += '<th>ملاحظات</th>';
+  headHTML += '<th>تعديل</th><th>حذف</th></tr>';
+  thead.innerHTML = headHTML;
+
+  tbody.innerHTML = '';
   filtered.forEach(rec => {
-    const age = getChickAge(rec.date, house ? house.startDate : '');
+    const age = getChickAge(rec.date, cycle?.startDate || '');
     const kg = (rec.feedBags * 50).toFixed(1);
-    const feedName = getArabicFeedName(rec.feedType);
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${rec.date}</td>
-      <td>${age !== '' ? age : '-'}</td>
-      <td>${feedName}</td>
-      <td>${rec.feedBags}</td>
-      <td>${kg}</td>
-      <td>${rec.dead}</td>
-      <td>${rec.medications || '-'}</td>
-      <td>${rec.expenses}</td>
-      <td>${rec.weight || '-'}</td>
-      <td>${rec.mortalityNotes || '-'}</td>
-      <td><button class="edit-btn" onclick="editDailyRecord(${rec.id})">✏️</button></td>
-      <td><button class="delete-btn" onclick="deleteDailyRecord(${rec.id})">🗑️</button></td>
-    `;
-    tbody.appendChild(row);
+    let row = '<tr>';
+    row += `<td>${rec.date}</td>`;
+    if (columnVisibility.age) row += `<td>${age || '-'}</td>`;
+    if (columnVisibility.feedType) row += `<td>${getArabicFeedName(rec.feedType)}</td>`;
+    if (columnVisibility.feedBags) row += `<td>${rec.feedBags}</td>`;
+    if (columnVisibility.kg) row += `<td>${kg}</td>`;
+    if (columnVisibility.dead) row += `<td>${rec.dead}</td>`;
+    if (columnVisibility.medications) row += `<td>${rec.medications || '-'}</td>`;
+    if (columnVisibility.expenses) row += `<td>${rec.expenses}</td>`;
+    if (columnVisibility.weight) row += `<td>${rec.weight || '-'}</td>`;
+    if (columnVisibility.mortalityNotes) row += `<td>${rec.mortalityNotes || '-'}</td>`;
+    row += `<td><button onclick="editDailyRecord(${rec.id})">✏️</button></td>`;
+    row += `<td><button class="danger" onclick="deleteDailyRecord(${rec.id})">🗑️</button></td>`;
+    row += '</tr>';
+    tbody.innerHTML += row;
   });
 }
 
-// ---------- مؤشرات الأداء ----------
 function updatePerformance() {
   const box = document.getElementById('performanceContent');
-  if (!currentHouse) { box.textContent = 'اختر عنبرًا'; return; }
+  if (!box) return;
   const house = houses.find(h => h.name === currentHouse);
-  if (!house) return;
-  const records = dailyRecords.filter(r => r.house === currentHouse);
-  if (records.length === 0) { box.textContent = 'لا توجد سجلات بعد'; return; }
-  const totalDead = records.reduce((s, r) => s + r.dead, 0);
-  const birdsNow = Math.max(0, house.initialCount - totalDead);
-  const totalFeedKg = records.reduce((s, r) => s + r.feedBags * 50, 0);
-  const lastWeight = records.sort((a,b)=>a.date.localeCompare(b.date)).pop().weight || 0;
-  const weightGain = lastWeight - (house.initialWeight || 0);
-  const totalGain = birdsNow * weightGain;
-  let fcr = '---';
-  if (totalGain > 0) fcr = (totalFeedKg / totalGain).toFixed(2);
-  let feedPerBird = '---';
-  if (birdsNow > 0) feedPerBird = (totalFeedKg / birdsNow).toFixed(2);
-
-  box.innerHTML = `
-    <p>🐣 العدد الحالي: <strong>${birdsNow}</strong> طائر</p>
-    <p>⚖️ متوسط الوزن: <strong>${lastWeight}</strong> جم</p>
-    <p>📈 الزيادة: <strong>${weightGain}</strong> جم/طائر</p>
-    <p>🌾 العلف المستهلك: <strong>${totalFeedKg.toFixed(1)}</strong> كجم</p>
-    <p>🔄 معامل التحويل (FCR): <strong>${fcr}</strong></p>
-    <p>🐔 استهلاك العلف/طائر: <strong>${feedPerBird}</strong> كجم</p>
-  `;
+  const cycle = house?.cycles?.find(c => c.id === currentCycleId);
+  if (!cycle) { box.textContent = 'اختر دورة'; return; }
+  const recs = dailyRecords.filter(r => r.house === currentHouse && r.cycleId === currentCycleId);
+  if (!recs.length) { box.textContent = 'لا سجلات'; return; }
+  const dead = recs.reduce((s, r) => s + r.dead, 0);
+  const birds = Math.max(0, cycle.initialCount - dead);
+  const feedKg = recs.reduce((s, r) => s + r.feedBags * 50, 0);
+  const lastWeight = recs.slice().sort((a, b) => a.date.localeCompare(b.date)).pop().weight || 0;
+  const gain = lastWeight - cycle.initialWeight;
+  const totalGain = birds * gain;
+  let fcr = totalGain > 0 ? (feedKg / totalGain).toFixed(2) : '-';
+  box.innerHTML = `🐣 ${birds} طائر | ⚖️ ${lastWeight} جم | 📈 +${gain} جم | 🌾 ${feedKg.toFixed(1)} كجم | 🔄 FCR: ${fcr}`;
 }
 
-// ---------- المخزن ----------
+// ========== المخزن ==========
 function renderWarehouse() {
-  document.getElementById('warehouseStock').innerHTML = `
-    <p><strong>بادي:</strong> ${stock.starter} ش (${stock.starter*50} كجم)</p>
-    <p><strong>نامي:</strong> ${stock.grower} ش (${stock.grower*50} كجم)</p>
-    <p><strong>ناهي:</strong> ${stock.finisher} ش (${stock.finisher*50} كجم)</p>
-  `;
+  const d = document.getElementById('warehouseStock');
+  if (d) d.innerHTML = `بادي: ${stock.starter} ش | نامي: ${stock.grower} ش | ناهي: ${stock.finisher} ش`;
 }
 
-document.getElementById('warehouseForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const type = document.getElementById('whType').value;
-  const bags = parseFloat(document.getElementById('whBags').value) || 0;
-  if (bags <= 0) return;
-  stock[type] += bags;
-  await persistData();
-  renderWarehouse();
-  this.reset();
-  document.getElementById('whBags').value = 1;
-});
-
-// ---------- السلف ----------
-let editingLoanId = null;
-
-document.getElementById('loanForm').addEventListener('submit', async function(e) {
+// ========== السلف ==========
+async function onLoanSubmit(e) {
   e.preventDefault();
   const loan = {
     id: editingLoanId || Date.now(),
@@ -353,187 +467,157 @@ document.getElementById('loanForm').addEventListener('submit', async function(e)
     person: document.getElementById('loanPerson').value.trim(),
     amount: parseFloat(document.getElementById('loanAmount').value)
   };
-  if (!loan.person || !loan.amount) return;
-
   if (editingLoanId) {
-    const index = loans.findIndex(l => l.id === editingLoanId);
-    if (index > -1) loans[index] = loan;
+    const idx = loans.findIndex(l => l.id === editingLoanId);
+    if (idx > -1) loans[idx] = loan;
     editingLoanId = null;
-    document.getElementById('editingLoanId').value = '';
-    document.getElementById('loanSubmitBtn').textContent = '💾 حفظ السلفة';
+    document.getElementById('loanSubmitBtn').textContent = '💾 حفظ';
     document.getElementById('cancelLoanEditBtn').style.display = 'none';
   } else {
     loans.push(loan);
   }
   await persistData();
   renderLoansTable();
-  this.reset();
-});
-
-function cancelLoanEdit() {
-  editingLoanId = null;
-  document.getElementById('editingLoanId').value = '';
-  document.getElementById('loanSubmitBtn').textContent = '💾 حفظ السلفة';
-  document.getElementById('cancelLoanEditBtn').style.display = 'none';
-  document.getElementById('loanForm').reset();
+  e.target.reset();
+  document.getElementById('loanDate').valueAsDate = new Date();
 }
 
 function editLoan(id) {
   const loan = loans.find(l => l.id === id);
   if (!loan) return;
-  document.getElementById('editingLoanId').value = loan.id;
   editingLoanId = loan.id;
+  document.getElementById('editingLoanId').value = loan.id;
   document.getElementById('loanDate').value = loan.date;
   document.getElementById('loanPerson').value = loan.person;
   document.getElementById('loanAmount').value = loan.amount;
-  document.getElementById('loanSubmitBtn').textContent = '✏️ تحديث السلفة';
+  document.getElementById('loanSubmitBtn').textContent = '✏️ تحديث';
   document.getElementById('cancelLoanEditBtn').style.display = 'inline-block';
 }
 
-function deleteLoan(id) {
-  if (!confirm('حذف السلفة؟')) return;
+function cancelLoanEdit() {
+  editingLoanId = null;
+  document.getElementById('loanSubmitBtn').textContent = '💾 حفظ';
+  document.getElementById('cancelLoanEditBtn').style.display = 'none';
+  document.getElementById('loanForm').reset();
+}
+
+async function deleteLoan(id) {
+  if (!confirm('حذف؟')) return;
   loans = loans.filter(l => l.id !== id);
-  persistData().then(renderLoansTable);
+  await persistData();
+  renderLoansTable();
 }
 
 function renderLoansTable() {
   const tbody = document.getElementById('loansBody');
-  tbody.innerHTML = '';
-  loans.sort((a,b)=>a.date.localeCompare(b.date)).forEach(loan => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${loan.date}</td>
-      <td>${loan.person}</td>
-      <td>${loan.amount}</td>
-      <td><button class="edit-btn" onclick="editLoan(${loan.id})">✏️</button></td>
-      <td><button class="delete-btn" onclick="deleteLoan(${loan.id})">🗑️</button></td>
-    `;
-    tbody.appendChild(row);
-  });
+  if (!tbody) return;
+  tbody.innerHTML = loans.sort((a, b) => b.date.localeCompare(a.date)).map(l => `
+    <tr><td>${l.date}</td><td>${l.person}</td><td>${l.amount}</td>
+    <td><button onclick="editLoan(${l.id})">✏️</button></td>
+    <td><button class="danger" onclick="deleteLoan(${l.id})">🗑️</button></td></tr>
+  `).join('');
 }
 
-// ---------- التبويبات ----------
-function showTab(tab) {
-  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-
-  switch(tab) {
-    case 'daily':
-      document.getElementById('dailySection').style.display = 'block';
-      document.querySelector('.tab:nth-child(1)').classList.add('active');
-      renderDailyTable();
-      updatePerformance();
-      updateFeedHint();
-      break;
-    case 'warehouse':
-      document.getElementById('warehouseSection').style.display = 'block';
-      document.querySelector('.tab:nth-child(2)').classList.add('active');
-      renderWarehouse();
-      break;
-    case 'loans':
-      document.getElementById('loansSection').style.display = 'block';
-      document.querySelector('.tab:nth-child(3)').classList.add('active');
-      renderLoansTable();
-      break;
-    case 'charts':
-      document.getElementById('chartsSection').style.display = 'block';
-      document.querySelector('.tab:nth-child(4)').classList.add('active');
-      populateHouseSelects();
-      drawChart();
-      break;
-    case 'reports':
-      document.getElementById('reportsSection').style.display = 'block';
-      document.querySelector('.tab:nth-child(5)').classList.add('active');
-      generateReports();
-      break;
-    case 'settings':
-      document.getElementById('settingsSection').style.display = 'block';
-      document.querySelector('.tab:nth-child(6)').classList.add('active');
-      checkInstallBtn();
-      break;
-  }
-}
-
-// ---------- الرسوم البيانية ----------
-document.getElementById('chartHouseSelect').addEventListener('change', drawChart);
-document.getElementById('chartType').addEventListener('change', drawChart);
-
+// ========== الرسوم البيانية (مقارنة عنابر) ==========
 function drawChart() {
-  const houseName = document.getElementById('chartHouseSelect').value;
-  const type = document.getElementById('chartType').value;
-  if (!houseName) { if(chartInstance) chartInstance.destroy(); return; }
-  let records = dailyRecords.filter(r => r.house === houseName).sort((a,b)=>a.date.localeCompare(b.date));
-  if (records.length === 0) { if(chartInstance) chartInstance.destroy(); alert('لا بيانات'); return; }
-  const labels = records.map(r=>r.date);
-  let data=[], label='';
-  if(type==='weight') {
-    data=records.map(r=>r.weight||0);
-    label='الوزن (جرام)';
-  } else if(type==='dead') {
-    data=records.map(r=>r.dead);
-    label='النافق';
-  } else {
-    const dayMap={};
-    records.forEach(r=>{ dayMap[r.date]=(dayMap[r.date]||0)+r.feedBags*50; });
-    const sorted=Object.keys(dayMap).sort();
-    labels.length=0; data=[];
-    sorted.forEach(d=>{ labels.push(d); data.push(dayMap[d]); });
-    label='العلف (كجم)';
-  }
-  const ctx=document.getElementById('myChart').getContext('2d');
-  if(chartInstance) chartInstance.destroy();
-  chartInstance=new Chart(ctx,{
-    type:'line',
-    data:{labels,datasets:[{label,data,borderColor:'#2d6a4f',backgroundColor:'rgba(45,106,79,0.2)',tension:0.1}]},
-    options:{responsive:true,plugins:{legend:{position:'bottom'}}}
-  });
-}
-
-// ---------- التقارير ----------
-function generateReports() {
-  const content = document.getElementById('reportsContent');
-  if (houses.length === 0) {
-    content.innerHTML = '<p>لا توجد عنابر مسجلة.</p>';
+  const type = document.getElementById('chartType')?.value || 'weight';
+  const checkboxes = document.querySelectorAll('.chart-house-cb:checked');
+  const selectedHouses = Array.from(checkboxes).map(cb => cb.value);
+  if (!selectedHouses.length) {
+    if (chartInstance) chartInstance.destroy();
     return;
   }
-  let html = '<table><thead><tr><th>العنبر</th><th>العدد الحالي</th><th>الوزن (جم)</th><th>علف (كجم)</th><th>نافق</th><th>FCR</th><th>مصروفات</th></tr></thead><tbody>';
-
-  let totalBirds = 0, totalFeed = 0, totalDead = 0, totalExpenses = 0;
-  houses.forEach(house => {
-    const recs = dailyRecords.filter(r => r.house === house.name);
-    const dead = recs.reduce((s,r)=>s+r.dead,0);
-    const birds = Math.max(0, house.initialCount - dead);
-    const feedKg = recs.reduce((s,r)=>s+r.feedBags*50,0);
-    const weight = recs.length ? recs.sort((a,b)=>a.date.localeCompare(b.date)).pop().weight || 0 : 0;
-    const gain = weight - (house.initialWeight||0);
-    const totalGain = birds * gain;
-    const fcr = totalGain > 0 ? (feedKg / totalGain).toFixed(2) : '-';
-    const expenses = recs.reduce((s,r)=>s+(r.expenses||0),0);
-
-    html += `<tr>
-      <td>${house.name}</td><td>${birds}</td><td>${weight}</td><td>${feedKg.toFixed(1)}</td>
-      <td>${dead}</td><td>${fcr}</td><td>${expenses}</td>
-    </tr>`;
-    totalBirds += birds;
-    totalFeed += feedKg;
-    totalDead += dead;
-    totalExpenses += expenses;
+  const datasets = [];
+  selectedHouses.forEach(houseName => {
+    const recs = dailyRecords.filter(r => r.house === houseName).sort((a, b) => a.date.localeCompare(b.date));
+    if (!recs.length) return;
+    let data, label;
+    if (type === 'weight') {
+      data = recs.map(r => r.weight || 0);
+      label = `وزن ${houseName}`;
+    } else if (type === 'dead') {
+      data = recs.map(r => r.dead);
+      label = `نافق ${houseName}`;
+    } else {
+      const dayMap = {};
+      recs.forEach(r => dayMap[r.date] = (dayMap[r.date] || 0) + r.feedBags * 50);
+      const sorted = Object.keys(dayMap).sort();
+      data = sorted.map(d => dayMap[d]);
+      label = `علف ${houseName}`;
+    }
+    datasets.push({ label, data, borderWidth: 2, tension: 0.1 });
   });
-  html += '</tbody></table>';
-  html += `<div style="margin-top:15px;"><strong>الإجماليات:</strong> الطيور: ${totalBirds} | العلف: ${totalFeed.toFixed(1)} كجم | النافق: ${totalDead} | المصروفات: ${totalExpenses} ج.م</div>`;
-  content.innerHTML = html;
+  const labels = type === 'feed' ? [...new Set(dailyRecords.filter(r => selectedHouses.includes(r.house)).map(r => r.date))].sort() :
+    dailyRecords.filter(r => selectedHouses.includes(r.house)).sort((a,b)=>a.date.localeCompare(b.date)).map(r => r.date);
+
+  const ctx = document.getElementById('myChart')?.getContext('2d');
+  if (!ctx) return;
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: { responsive: true } });
 }
 
-// ---------- تصدير / استيراد / مسح ----------
-async function exportAllData() {
-  const data = { houses, dailyRecords, loans, stock };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
+// ========== الأعمدة القابلة للتخصيص ==========
+function toggleColumnPicker() {
+  const modal = document.getElementById('columnPickerModal');
+  if (!modal) return;
+  const container = document.getElementById('columnChecks');
+  container.innerHTML = '';
+  for (let key in columnVisibility) {
+    container.innerHTML += `<label><input type="checkbox" class="col-cb" data-key="${key}" ${columnVisibility[key] ? 'checked' : ''}> ${key}</label><br>`;
+  }
+  modal.style.display = 'flex';
+}
+
+function applyColumns() {
+  document.querySelectorAll('.col-cb').forEach(cb => {
+    columnVisibility[cb.dataset.key] = cb.checked;
+  });
+  document.getElementById('columnPickerModal').style.display = 'none';
+  renderDailyTable();
+}
+
+// ========== تصدير/استيراد منفصل ==========
+function exportData(type) {
+  let data;
+  if (type === 'houses') data = houses;
+  else if (type === 'dailyRecords') data = dailyRecords;
+  else if (type === 'loans') data = loans;
+  else if (type === 'stock') data = stock;
+  downloadJSON(data, `${type}_backup.json`);
+}
+
+function importData(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const json = JSON.parse(e.target.result);
+      if (type === 'houses') houses = json;
+      else if (type === 'dailyRecords') dailyRecords = json;
+      else if (type === 'loans') loans = json;
+      else if (type === 'stock') stock = json;
+      await persistData();
+      alert('تم الاستيراد');
+      renderTab(document.querySelector('.nav-btn.active')?.dataset.tab || 'daily');
+    } catch { alert('خطأ'); }
+  };
+  reader.readAsText(file);
+}
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `poultry-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+}
+
+// ========== تصدير/استيراد كامل ==========
+async function exportAllData() {
+  downloadJSON({ houses, dailyRecords, loans, stock }, 'farm_full_backup.json');
+  await persistData(); // تحديث تاريخ التصدير للنسخ الاحتياطي التلقائي
+  localStorage.setItem('lastBackupDate', new Date().toISOString().slice(0, 10));
 }
 
 async function importAllData(event) {
@@ -543,66 +627,95 @@ async function importAllData(event) {
   reader.onload = async (e) => {
     try {
       const json = JSON.parse(e.target.result);
-      if (json.houses && json.dailyRecords && json.loans && json.stock) {
-        houses = json.houses;
-        dailyRecords = json.dailyRecords;
-        loans = json.loans;
-        stock = json.stock;
-        await persistData();
-        alert('تم استيراد البيانات بنجاح. سيتم إعادة التحميل.');
-        location.reload();
-      } else {
-        alert('ملف غير صالح');
-      }
-    } catch (err) {
-      alert('خطأ في قراءة الملف');
-    }
+      houses = json.houses || [];
+      dailyRecords = json.dailyRecords || [];
+      loans = json.loans || [];
+      stock = json.stock || {};
+      await persistData();
+      alert('تم الاستيراد');
+      location.reload();
+    } catch { alert('ملف غير صالح'); }
   };
   reader.readAsText(file);
 }
 
 async function clearAllData() {
-  if (confirm('سيتم مسح جميع البيانات نهائياً. هل أنت متأكد؟')) {
-    houses = [];
-    dailyRecords = [];
-    loans = [];
-    stock = { starter:0, grower:0, finisher:0 };
+  if (confirm('مسح كل شيء؟')) {
+    houses = []; dailyRecords = []; loans = []; stock = { starter: 0, grower: 0, finisher: 0 };
     await persistData();
     location.reload();
   }
 }
 
-// ---------- CSV و PDF للجدول اليومي ----------
-function exportTableCSV() {
-  if (!currentHouse) { alert('اختر عنبراً أولاً'); return; }
-  const recs = dailyRecords.filter(r => r.house === currentHouse).sort((a,b)=>a.date.localeCompare(b.date));
-  if (recs.length===0) return;
-  const houseObj = houses.find(h=>h.name===currentHouse);
-  let csv = 'التاريخ,العمر,نوع العلف,شكاير,كجم,النافق,الأدوية,مصروفات,الوزن,ملاحظات\n';
-  recs.forEach(r => {
-    const age = getChickAge(r.date, houseObj?.startDate || '');
-    const kg = (r.feedBags*50).toFixed(1);
-    csv += `${r.date},${age},${getArabicFeedName(r.feedType)},${r.feedBags},${kg},${r.dead},"${r.medications||''}",${r.expenses},${r.weight||''},"${r.mortalityNotes||''}"\n`;
+// ========== التقارير ==========
+function showReports() {
+  document.getElementById('reportsContainer').style.display = 'block';
+  let html = '<h3>ملخص العنابر</h3><table><tr><th>العنبر</th><th>الدورة</th><th>العدد الحالي</th><th>وزن</th><th>علف</th><th>FCR</th></tr>';
+  houses.forEach(h => {
+    h.cycles?.forEach(c => {
+      const recs = dailyRecords.filter(r => r.house === h.name && r.cycleId === c.id);
+      const dead = recs.reduce((s,r)=>s+r.dead,0);
+      const birds = Math.max(0, c.initialCount - dead);
+      const feedKg = recs.reduce((s,r)=>s+r.feedBags*50,0);
+      const w = recs.slice().sort((a,b)=>a.date.localeCompare(b.date)).pop()?.weight || 0;
+      const gain = w - c.initialWeight;
+      const fcr = gain > 0 ? (feedKg / (birds * gain)).toFixed(2) : '-';
+      html += `<tr><td>${h.name}</td><td>${c.startDate}</td><td>${birds}</td><td>${w}</td><td>${feedKg.toFixed(1)}</td><td>${fcr}</td></tr>`;
+    });
   });
-  const blob = new Blob(['\uFEFF'+csv], {type: 'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${currentHouse}-سجلات.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  html += '</table>';
+  document.getElementById('reportsContent').innerHTML = html;
 }
 
-function printTable() {
-  window.print();
+function hideReports() {
+  document.getElementById('reportsContainer').style.display = 'none';
 }
 
-// ---------- PWA install ----------
-let deferredPrompt;
+// ========== التنبيهات ==========
+function checkAlerts() {
+  let msg = [];
+  // نقص المخزون
+  for (let t in stock) {
+    if (stock[t] < 3) msg.push(`تحذير: ${getArabicFeedName(t)} أقل من 3 شكاير`);
+  }
+  // فوات تسجيل يومي
+  const today = new Date().toISOString().slice(0, 10);
+  houses.forEach(h => {
+    const active = getActiveCycle(h);
+    if (!active) return;
+    const recs = dailyRecords.filter(r => r.house === h.name && r.cycleId === active.id);
+    if (recs.length && recs.sort((a,b)=>b.date.localeCompare(a.date))[0].date < today) {
+      msg.push(`تنبيه: ${h.name} لم يسجل اليوم`);
+    }
+  });
+  const bar = document.getElementById('alertBar');
+  if (bar) {
+    bar.style.display = msg.length ? 'block' : 'none';
+    bar.textContent = msg.join(' | ');
+  }
+}
+
+// ========== النسخ الاحتياطي التلقائي الأسبوعي (يوم الجمعة) ==========
+function autoBackupPrompt() {
+  const today = new Date();
+  if (today.getDay() === 5) { // الجمعة
+    const last = localStorage.getItem('lastBackupDate');
+    const todayStr = today.toISOString().slice(0, 10);
+    if (last !== todayStr) {
+      if (confirm('اليوم الجمعة. هل تريد تحميل نسخة احتياطية؟')) {
+        exportAllData();
+      }
+      localStorage.setItem('lastBackupDate', todayStr);
+    }
+  }
+}
+
+// ========== PWA ==========
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  document.getElementById('installBtn').style.display = 'block';
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'block';
 });
 
 function installApp() {
@@ -615,31 +728,15 @@ function installApp() {
   }
 }
 
-function checkInstallBtn() {
-  if (deferredPrompt) {
-    document.getElementById('installBtn').style.display = 'block';
-  } else {
-    document.getElementById('installBtn').style.display = 'none';
-  }
-}
+// ========== مؤشر الاتصال ==========
+window.addEventListener('online', () => document.getElementById('offlineBar').style.display = 'none');
+window.addEventListener('offline', () => document.getElementById('offlineBar').style.display = 'block');
 
-// ---------- دوال مساعدة ----------
-function getArabicFeedName(type) {
-  switch(type) {
-    case 'starter': return 'بادي';
-    case 'grower': return 'نامي';
-    case 'finisher': return 'ناهي';
-    default: return type;
-  }
-}
-
-// ---------- البداية ----------
+// ========== بدء التطبيق ==========
 async function init() {
   await loadDataFromDB();
-  populateHouseSelects();
-  document.getElementById('date').valueAsDate = new Date();
-  document.getElementById('loanDate').valueAsDate = new Date();
-  updateFeedHint();
-  showTab('daily');
+  renderTab('daily');
+  autoBackupPrompt();
+  if (!navigator.onLine) document.getElementById('offlineBar').style.display = 'block';
 }
 init();
