@@ -1,7 +1,0 @@
-<resources>
-    <string name="app_name">Poultry Farm Manager</string>
-    <string name="welcome_message">Manage flock cycles, logs, and performance with offline-first support.</string>
-    <string name="open_daily_log">Open daily log</string>
-    <string name="daily_log_title">Daily Log</string>
-    <string name="daily_log_hint">Record mortality, feed intake, environment, and notes.</string>
-</resources>
