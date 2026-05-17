@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة مزرعة الدواجن - متعدد العنابر</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- رسم بياني من CDN (يلزم إنترنت أول مرة) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🐔 إدارة مزرعة دواجن التسمين</h1>
+
+    <!-- شريط التبويبات السفلي -->
+    <div class="tabs">
+      <button id="tabDaily" class="tab active" onclick="showTab('daily')">📋 السجل اليومي</button>
+      <button id="tabLoans" class="tab" onclick="showTab('loans')">💰 السلف</button>
+      <button id="tabCharts" class="tab" onclick="showTab('charts')">📊 الرسوم البيانية</button>
+    </div>
+
+    <!-- التبويب 1: السجل اليومي -->
+    <div id="dailySection" class="section">
+      <!-- اختيار العنبر -->
+      <div class="house-selector">
+        <label for="houseSelect">العنبر:</label>
+        <select id="houseSelect"></select>
+        <button onclick="addHouse()">➕ إضافة عنبر</button>
+      </div>
+
+      <!-- نموذج الإدخال اليومي -->
+      <form id="dailyForm">
+        <label for="date">التاريخ</label>
+        <input type="date" id="date" required>
+
+        <label for="feedBags">العلف (عدد الشكاير)</label>
+        <input type="number" id="feedBags" step="any" value="0" min="0" placeholder="الشكارة = 50 كجم">
+
+        <label for="dead">النافق اليوم</label>
+        <input type="number" id="dead" value="0" min="0">
+
+        <label for="medications">الأدوية المستخدمة</label>
+        <input type="text" id="medications" placeholder="أسماء الأدوية">
+
+        <label for="expenses">مصروفات اليوم</label>
+        <input type="number" id="expenses" step="any" value="0" min="0" placeholder="ج.م">
+
+        <label for="weight">متوسط وزن الطائر (جرام)</label>
+        <input type="number" id="weight" step="any" placeholder="مثال: 2100">
+
+        <label for="mortalityNotes">ملاحظات النافق</label>
+        <textarea id="mortalityNotes" rows="2" placeholder="سبب النافق أو ملاحظات..."></textarea>
+
+        <button type="submit">💾 حفظ السجل</button>
+      </form>
+
+      <!-- جدول سجلات العنبر المختار -->
+      <h3>آخر السجلات - <span id="currentHouseTitle"></span></h3>
+      <table id="recordsTable">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>شكاير</th>
+            <th>كجم</th>
+            <th>النافق</th>
+            <th>الأدوية</th>
+            <th>مصروفات</th>
+            <th>الوزن</th>
+            <th>ملاحظات</th>
+            <th>حذف</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- التبويب 2: السلف الأسبوعية -->
+    <div id="loansSection" class="section" style="display:none;">
+      <h2>💰 سلف أسبوعية (كل جمعة)</h2>
+      <form id="loanForm">
+        <label for="loanDate">التاريخ</label>
+        <input type="date" id="loanDate" required>
+        <label for="loanPerson">اسم الشخص</label>
+        <input type="text" id="loanPerson" placeholder="اسم العامل" required>
+        <label for="loanAmount">المبلغ (ج.م)</label>
+        <input type="number" id="loanAmount" step="any" required>
+        <button type="submit">💾 حفظ السلفة</button>
+      </form>
+      <h3>جميع السلفات</h3>
+      <table id="loansTable">
+        <thead>
+          <tr><th>التاريخ</th><th>الشخص</th><th>المبلغ</th><th>حذف</th></tr>
+        </thead>
+        <tbody id="loansBody"></tbody>
+      </table>
+    </div>
+
+    <!-- التبويب 3: الرسوم البيانية -->
+    <div id="chartsSection" class="section" style="display:none;">
+      <h2>📊 الرسوم البيانية</h2>
+      <div class="chart-controls">
+        <label for="chartHouseSelect">العنبر:</label>
+        <select id="chartHouseSelect"></select>
+        <label for="chartType">نوع الرسم:</label>
+        <select id="chartType">
+          <option value="weight">الوزن</option>
+          <option value="dead">النافق</option>
+          <option value="feed">العلف (كجم)</option>
+        </select>
+      </div>
+      <canvas id="myChart" width="300" height="200"></canvas>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
