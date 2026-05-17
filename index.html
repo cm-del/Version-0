@@ -6,58 +6,59 @@
   <title>مزرعة دواجن - احترافي</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1b4332">
+  <meta name="theme-color" content="#2c3e50">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
-    /* أيقونة الدجاجة كـ SVG مضمّن للشعار */
-    .app-logo { width: 48px; height: 48px; vertical-align: middle; margin-left: 10px; }
+    .app-logo { width: 44px; height: 44px; vertical-align: middle; margin-left: 8px; }
   </style>
 </head>
 <body>
-  <div id="offlineBar" class="offline-bar">أنت غير متصل بالإنترنت</div>
+  <div id="offlineBar" class="offline-bar" data-i18n="offline">أنت غير متصل بالإنترنت</div>
   <div id="alertBar" class="alert-bar" style="display:none"></div>
 
   <div class="app-container">
-    <header style="text-align:center;padding:10px 0;">
+    <header style="text-align:center;padding:12px 0 8px;">
       <svg class="app-logo" viewBox="0 0 64 64" fill="none">
-        <circle cx="32" cy="32" r="30" fill="#2d6a4f" />
-        <path d="M20 32c0-6 8-12 12-12s12 6 12 12-8 12-12 12-12-6-12-12z" fill="#fff" />
-        <circle cx="28" cy="30" r="2" fill="#1b4332" />
-        <circle cx="36" cy="30" r="2" fill="#1b4332" />
-        <path d="M26 36c2 2 6 2 8 0" stroke="#1b4332" stroke-width="2" stroke-linecap="round" />
-        <path d="M38 24l6-4" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+        <circle cx="32" cy="32" r="30" fill="#2c3e50"/>
+        <path d="M20 32c0-6 8-12 12-12s12 6 12 12-8 12-12 12-12-6-12-12z" fill="#ecf0f1"/>
+        <circle cx="28" cy="30" r="2" fill="#2c3e50"/>
+        <circle cx="36" cy="30" r="2" fill="#2c3e50"/>
+        <path d="M26 36c2 2 6 2 8 0" stroke="#2c3e50" stroke-width="2" stroke-linecap="round"/>
+        <path d="M38 24l6-4" stroke="#ecf0f1" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <h1 style="display:inline;color:#1b4332;font-size:1.4rem;">مزرعة دواجن</h1>
+      <h1 style="display:inline;color:#2c3e50;font-size:1.4rem;" data-i18n="appName">مزرعة دواجن</h1>
     </header>
     <main id="mainContent" class="main-content"></main>
 
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-tab="dashboard">🏠 الرئيسية</button>
-      <button class="nav-btn" data-tab="warehouse">🏭 المخزن</button>
-      <button class="nav-btn" data-tab="loans">💰 السلف</button>
-      <button class="nav-btn" data-tab="charts">📊 الرسوم</button>
-      <button class="nav-btn" data-tab="more">⚙️ المزيد</button>
+      <button class="nav-btn active" data-tab="dashboard">🏠 <span data-i18n="home">الرئيسية</span></button>
+      <button class="nav-btn" data-tab="warehouse">🏭 <span data-i18n="warehouse">المخزن</span></button>
+      <button class="nav-btn" data-tab="loans">💰 <span data-i18n="loans">السلف</span></button>
+      <button class="nav-btn" data-tab="charts">📊 <span data-i18n="charts">الرسوم</span></button>
+      <button class="nav-btn" data-tab="more">⚙️ <span data-i18n="more">المزيد</span></button>
     </nav>
   </div>
 
-  <!-- القوالب المخفية -->
+  <!-- القوالب -->
   <div style="display:none" id="templates">
     <!-- اللوحة الرئيسية -->
     <div id="dashboardTemplate">
       <div id="dashboardContent"></div>
-      <button class="btn-block" onclick="showDailyEntry()" style="margin-top:15px">📋 تسجيل يومي</button>
+      <button class="btn-block" onclick="showDailyEntry()" style="margin-top:15px">📋 <span data-i18n="dailyEntry">تسجيل يومي</span></button>
     </div>
 
-    <!-- نموذج السجل اليومي -->
+    <!-- السجل اليومي -->
     <div id="dailyEntryTemplate" style="display:none;">
-      <button class="text-btn" onclick="showDashboard()">⬅ رجوع للرئيسية</button>
+      <button class="text-btn" onclick="showDashboard()">⬅ <span data-i18n="backToDashboard">رجوع للرئيسية</span></button>
       <div class="house-panel">
         <select id="houseSelect"></select>
         <button class="icon-btn" onclick="addHouse()">➕</button>
+        <button class="icon-btn" onclick="editHouse()">✏️</button>
+        <button class="icon-btn danger" onclick="deleteHouse()">🗑️</button>
       </div>
       <div class="cycle-panel">
-        <label>الدورة:</label>
+        <label data-i18n="cycle">الدورة:</label>
         <select id="cycleSelect"></select>
         <button class="icon-btn" onclick="editCycleDate()">📅</button>
       </div>
@@ -65,112 +66,130 @@
       <hr>
       <form id="dailyForm">
         <input type="hidden" id="editingId">
-        <label for="date">التاريخ</label>
+        <label for="date" data-i18n="date">التاريخ</label>
         <input type="date" id="date" required>
-        <label for="feedType">نوع العلف</label>
+        <label for="feedType" data-i18n="feedType">نوع العلف</label>
         <select id="feedType" required>
-          <option value="starter">بادي</option>
-          <option value="grower">نامي</option>
-          <option value="finisher">ناهي</option>
+          <option value="starter" data-i18n="starter">بادي</option>
+          <option value="grower" data-i18n="grower">نامي</option>
+          <option value="finisher" data-i18n="finisher">ناهي</option>
         </select>
         <small id="feedStockHint"></small>
-        <label for="feedBags">عدد الشكاير</label>
+        <label for="feedBags" data-i18n="feedBags">عدد الشكاير</label>
         <input type="number" id="feedBags" step="any" value="0" min="0" required>
         <small id="feedEstimateHint"></small>
-        <label for="dead">النافق اليوم</label>
+        <label for="dead" data-i18n="dead">النافق اليوم</label>
         <input type="number" id="dead" value="0" min="0">
-        <label for="medications">الأدوية</label>
-        <input type="text" id="medications" placeholder="أسماء الأدوية">
-        <label for="expenses">مصروفات (ج.م)</label>
+        <label for="medications" data-i18n="medications">الأدوية</label>
+        <input type="text" id="medications">
+        <label for="expenses" data-i18n="expenses">مصروفات (ج.م)</label>
         <input type="number" id="expenses" step="any" value="0">
-        <label for="weight">متوسط الوزن (جرام)</label>
-        <input type="number" id="weight" step="any" placeholder="مثال: 2100">
-        <label for="mortalityNotes">ملاحظات النافق</label>
-        <textarea id="mortalityNotes" rows="2" placeholder="سبب النافق..."></textarea>
-        <button type="submit" id="formSubmitBtn">💾 حفظ</button>
-        <button type="button" id="cancelEditBtn" class="secondary" style="display:none" onclick="cancelEdit()">إلغاء</button>
+        <label for="weight" data-i18n="weight">متوسط الوزن (جرام)</label>
+        <input type="number" id="weight" step="any">
+        <label for="mortalityNotes" data-i18n="mortalityNotes">ملاحظات النافق</label>
+        <textarea id="mortalityNotes" rows="2"></textarea>
+        <button type="submit" id="formSubmitBtn">💾 <span data-i18n="save">حفظ</span></button>
+        <button type="button" id="cancelEditBtn" class="secondary" style="display:none" onclick="cancelEdit()" data-i18n="cancel">إلغاء</button>
       </form>
       <div class="table-header">
-        <h3>سجلات <span id="currentHouseTitle"></span></h3>
-        <button class="text-btn" onclick="toggleColumnPicker()">⚙️ أعمدة</button>
+        <h3><span data-i18n="records">سجلات</span> <span id="currentHouseTitle"></span></h3>
+        <div>
+          <button class="text-btn" onclick="exportTableCSV()">📥 CSV</button>
+          <button class="text-btn" onclick="exportTablePDF()">📄 PDF</button>
+          <button class="text-btn" onclick="toggleColumnPicker()">⚙️ <span data-i18n="columns">أعمدة</span></button>
+        </div>
       </div>
       <div class="table-responsive">
         <table id="recordsTable"><thead id="recordsTableHead"></thead><tbody id="tableBody"></tbody></table>
       </div>
-      <div class="performance-box"><h4>📈 مؤشرات</h4><div id="performanceContent"></div></div>
+      <div class="performance-box"><h4>📈 <span data-i18n="indicators">مؤشرات</span></h4><div id="performanceContent"></div></div>
     </div>
 
     <!-- المخزن -->
     <div id="warehouseTemplate">
-      <h2>🏭 مخزن الأعلاف</h2>
+      <h2>🏭 <span data-i18n="warehouse">مخزن الأعلاف</span></h2>
       <div id="warehouseStock"></div>
       <hr>
       <form id="warehouseForm">
-        <label for="whType">نوع العلف</label>
-        <select id="whType"><option value="starter">بادي</option><option value="grower">نامي</option><option value="finisher">ناهي</option></select>
-        <label for="whBags">عدد الشكاير</label>
+        <label for="whType" data-i18n="feedType">نوع العلف</label>
+        <select id="whType">
+          <option value="starter" data-i18n="starter">بادي</option>
+          <option value="grower" data-i18n="grower">نامي</option>
+          <option value="finisher" data-i18n="finisher">ناهي</option>
+        </select>
+        <label for="whBags" data-i18n="feedBags">عدد الشكاير</label>
         <input type="number" id="whBags" min="1" value="1" required>
-        <button type="submit">➕ إضافة للمخزن</button>
+        <button type="submit">➕ <span data-i18n="addToWarehouse">إضافة للمخزن</span></button>
       </form>
     </div>
 
     <!-- السلف -->
     <div id="loansTemplate">
-      <h2>💰 سلف أسبوعية</h2>
+      <h2>💰 <span data-i18n="loans">سلف أسبوعية</span></h2>
       <form id="loanForm">
         <input type="hidden" id="editingLoanId">
-        <label for="loanDate">التاريخ</label><input type="date" id="loanDate" required>
-        <label for="loanPerson">اسم الشخص</label><input type="text" id="loanPerson" required>
-        <label for="loanAmount">المبلغ (ج.م)</label><input type="number" id="loanAmount" step="any" required>
-        <button type="submit" id="loanSubmitBtn">💾 حفظ</button>
-        <button type="button" id="cancelLoanEditBtn" class="secondary" style="display:none" onclick="cancelLoanEdit()">إلغاء</button>
+        <label for="loanDate" data-i18n="date">التاريخ</label><input type="date" id="loanDate" required>
+        <label for="loanPerson" data-i18n="person">اسم الشخص</label><input type="text" id="loanPerson" required>
+        <label for="loanAmount" data-i18n="amount">المبلغ (ج.م)</label><input type="number" id="loanAmount" step="any" required>
+        <button type="submit" id="loanSubmitBtn">💾 <span data-i18n="save">حفظ</span></button>
+        <button type="button" id="cancelLoanEditBtn" class="secondary" style="display:none" onclick="cancelLoanEdit()" data-i18n="cancel">إلغاء</button>
       </form>
-      <h3>جميع السلفات</h3>
-      <table id="loansTable"><thead><tr><th>التاريخ</th><th>الشخص</th><th>المبلغ</th><th>تعديل</th><th>حذف</th></tr></thead><tbody id="loansBody"></tbody></table>
+      <h3 data-i18n="allLoans">جميع السلفات</h3>
+      <table id="loansTable"><thead><tr><th data-i18n="date">التاريخ</th><th data-i18n="person">الشخص</th><th data-i18n="amount">المبلغ</th><th data-i18n="edit">تعديل</th><th data-i18n="delete">حذف</th></tr></thead><tbody id="loansBody"></tbody></table>
     </div>
 
     <!-- الرسوم البيانية -->
     <div id="chartsTemplate">
-      <h2>📊 الرسوم البيانية</h2>
+      <h2>📊 <span data-i18n="charts">الرسوم البيانية</span></h2>
       <div class="chart-controls">
-        <label>العنبر:</label>
+        <label data-i18n="house">العنبر:</label>
         <select id="chartHouseSelect"></select>
         <div id="cycleComparison">
-          <label>الدورة 1:</label><select id="cycle1Select"></select>
-          <label>الدورة 2 (اختياري):</label><select id="cycle2Select"><option value="">لا مقارنة</option></select>
+          <label data-i18n="cycle1">الدورة 1:</label><select id="cycle1Select"></select>
+          <label data-i18n="cycle2">الدورة 2 (اختياري):</label><select id="cycle2Select"><option value="">لا مقارنة</option></select>
         </div>
-        <label for="chartType">نوع الرسم:</label>
-        <select id="chartType"><option value="weight">الوزن</option><option value="dead">النافق</option><option value="feed">العلف (كجم)</option></select>
+        <label for="chartType" data-i18n="chartType">نوع الرسم:</label>
+        <select id="chartType"><option value="weight" data-i18n="weight">الوزن</option><option value="dead" data-i18n="dead">النافق</option><option value="feed" data-i18n="feed">العلف (كجم)</option></select>
       </div>
       <canvas id="myChart" width="300" height="200"></canvas>
     </div>
 
-    <!-- المزيد -->
+    <!-- المزيد (الإعدادات) -->
     <div id="moreTemplate">
-      <h2>⚙️ الإعدادات والبيانات</h2>
-      <button class="btn-block" onclick="exportAllData()">💾 تصدير كل البيانات</button>
-      <button class="btn-block" onclick="document.getElementById('importFile').click()">📂 استيراد بيانات</button>
+      <h2>⚙️ <span data-i18n="settings">الإعدادات</span></h2>
+      <div class="settings-section">
+        <h3 data-i18n="language">اللغة</h3>
+        <select id="languageSelect" onchange="changeLanguage(this.value)">
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+        </select>
+        <h3 data-i18n="voiceInput">الإدخال الصوتي</h3>
+        <button id="voiceBtn" onclick="toggleVoice()" class="btn-block">🎤 <span data-i18n="startVoice">بدء الإدخال الصوتي</span></button>
+      </div>
+      <hr>
+      <button class="btn-block" onclick="exportAllData()">💾 <span data-i18n="exportAll">تصدير كل البيانات</span></button>
+      <button class="btn-block" onclick="document.getElementById('importFile').click()">📂 <span data-i18n="importData">استيراد بيانات</span></button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(event)">
-      <button class="btn-block" onclick="showQRExport()">📱 مشاركة عبر QR</button>
-      <button class="btn-block" onclick="startQRImport()">📷 مسح QR لاستيراد</button>
+      <button class="btn-block" onclick="showQRExport()">📱 <span data-i18n="shareQR">مشاركة عبر QR</span></button>
+      <button class="btn-block" onclick="startQRImport()">📷 <span data-i18n="scanQR">مسح QR لاستيراد</span></button>
       <div id="qrContainer" style="text-align:center;margin-top:10px;"></div>
       <div id="reader" style="width:300px;margin:10px auto;"></div>
       <hr>
-      <button class="btn-block danger" onclick="clearAllData()">🗑️ مسح جميع البيانات</button>
-      <button class="btn-block" id="installBtn" style="display:none" onclick="installApp()">📲 تثبيت التطبيق</button>
+      <button class="btn-block danger" onclick="clearAllData()">🗑️ <span data-i18n="clearAll">مسح جميع البيانات</span></button>
+      <button class="btn-block" id="installBtn" style="display:none" onclick="installApp()">📲 <span data-i18n="installApp">تثبيت التطبيق</span></button>
     </div>
   </div>
 
   <!-- نافذة اختيار الأعمدة -->
   <div id="columnPickerModal" class="modal" style="display:none">
     <div class="modal-content">
-      <h3>اختر الأعمدة</h3>
+      <h3 data-i18n="selectColumns">اختر الأعمدة</h3>
       <div id="columnChecks"></div>
-      <button class="btn-block" onclick="applyColumns()">تم</button>
+      <button class="btn-block" onclick="applyColumns()" data-i18n="done">تم</button>
     </div>
   </div>
 
-  <!-- نافذة تقويم دورة (لموبايل) -->
+  <!-- نافذة التقويم المخصص -->
   <div id="datePickerModal" class="modal" style="display:none">
     <div class="modal-content date-picker-content">
       <div class="date-picker-header">
@@ -180,8 +199,8 @@
       </div>
       <div class="date-picker-grid" id="dateGrid"></div>
       <div class="date-picker-actions">
-        <button id="clearDateBtn" class="secondary">إلغاء</button>
-        <button id="confirmDateBtn">تأكيد</button>
+        <button id="clearDateBtn" class="secondary" data-i18n="cancel">إلغاء</button>
+        <button id="confirmDateBtn" data-i18n="confirm">تأكيد</button>
       </div>
     </div>
   </div>

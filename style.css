@@ -1,12 +1,13 @@
 * { box-sizing: border-box; }
 :root {
-  --primary: #1b4332;
-  --primary-light: #2d6a4f;
-  --bg: #f4f6f8;
+  --primary: #2c3e50;
+  --primary-light: #34495e;
+  --bg: #f8f9fa;
   --surface: #ffffff;
-  --text: #333;
-  --danger: #e63946;
+  --text: #2c3e50;
+  --danger: #c0392b;
   --border: #dee2e6;
+  --accent: #ecf0f1;
 }
 body {
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -23,8 +24,8 @@ body {
 .offline-bar, .alert-bar {
   text-align: center; padding: 4px; font-size: 0.8rem; position: sticky; top: 0; z-index: 999;
 }
-.offline-bar { background: #e76f51; color: #fff; }
-.alert-bar { background: #e9c46a; color: #333; }
+.offline-bar { background: var(--danger); color: #fff; }
+.alert-bar { background: #f39c12; color: #fff; }
 .bottom-nav {
   display: flex; justify-content: space-around; align-items: center;
   background: var(--surface); border-top: 1px solid var(--border);
@@ -33,15 +34,15 @@ body {
 }
 .nav-btn {
   display: flex; flex-direction: column; align-items: center; background: none;
-  border: none; font-size: 0.7rem; color: #6c757d; flex: 1; padding: 5px; cursor: pointer;
+  border: none; font-size: 0.7rem; color: var(--primary); flex: 1; padding: 5px; cursor: pointer; opacity: 0.7;
 }
-.nav-btn.active { color: var(--primary); font-weight: bold; }
+.nav-btn.active { opacity: 1; font-weight: bold; color: var(--primary); }
 .house-panel, .cycle-panel {
   display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
 }
 select, input, textarea {
   padding: 10px; border: 1px solid var(--border); border-radius: 8px;
-  font-size: 1rem; width: 100%; margin-top: 5px; background: #fff;
+  font-size: 1rem; width: 100%; margin-top: 5px; background: #fff; color: var(--text);
 }
 label { font-weight: 600; margin-top: 10px; display: block; }
 button {
@@ -49,7 +50,7 @@ button {
   padding: 10px 18px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; transition: 0.2s;
 }
 button:active { opacity: 0.8; }
-.secondary { background: #6c757d; }
+.secondary { background: #7f8c8d; }
 .icon-btn { padding: 6px 12px; font-size: 1.2rem; }
 .text-btn { background: none; color: var(--primary); padding: 5px; text-decoration: underline; border: none; }
 .danger { background: var(--danger); }
@@ -69,12 +70,10 @@ th { background: var(--primary); color: white; }
 }
 .dashboard-card h3 { margin: 0 0 8px; color: var(--primary); }
 .card-row { display: flex; justify-content: space-between; }
-.info-box { font-size: 0.9rem; background: #e9f5ee; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
+.info-box { font-size: 0.9rem; background: #eaf2f8; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
 .performance-box {
-  background: #f0fdf4; border: 1px solid var(--primary); border-radius: 8px; padding: 12px; margin-top: 20px;
+  background: #f0f8ff; border: 1px solid var(--primary); border-radius: 8px; padding: 12px; margin-top: 20px;
 }
-
-/* تنسيقات التقويم */
 .date-picker-content { padding: 10px !important; }
 .date-picker-header {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
@@ -83,15 +82,8 @@ th { background: var(--primary); color: white; }
 .date-picker-grid {
   display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;
 }
-.date-picker-grid .day-header {
-  font-weight: bold; color: var(--primary); padding: 5px 0; font-size: 0.8rem;
-}
-.date-picker-grid .day-cell {
-  padding: 10px 0; border-radius: 50%; cursor: pointer; font-size: 0.9rem;
-}
-.date-picker-grid .day-cell:hover { background: #e9f5ee; }
+.date-picker-grid .day-header { font-weight: bold; color: var(--primary); padding: 5px 0; font-size: 0.8rem; }
+.date-picker-grid .day-cell { padding: 10px 0; border-radius: 50%; cursor: pointer; font-size: 0.9rem; }
+.date-picker-grid .day-cell:hover { background: #eaf2f8; }
 .date-picker-grid .day-cell.selected { background: var(--primary); color: white; }
-.date-picker-grid .day-cell.empty { cursor: default; }
-.date-picker-actions {
-  display: flex; justify-content: space-between; margin-top: 15px;
-}
+.date-picker-actions { display: flex; justify-content: space-between; margin-top: 15px; }

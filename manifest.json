@@ -1,14 +1,14 @@
 {
   "name": "مزرعة دواجن احترافي",
-  "short_name": "مزرعة الدواجن",
+  "short_name": "مزرعة دواجن",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#f4f6f8",
-  "theme_color": "#1b4332",
+  "background_color": "#f8f9fa",
+  "theme_color": "#2c3e50",
   "description": "تطبيق إدارة مزرعة دواجن التسمين",
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzAiIGZpbGw9IiMyZDZhNGYiLz48cGF0aCBkPSJNMjAgMzJjMC02IDgtMTIgMTItMTJzMTIgNiAxMiAxMi04IDEyLTEyIDEyLTEyLTYtMTItMTJ6IiBmaWxsPSJ3aGl0ZSIvPjxjaXJjbGUgY3g9IjI4IiBjeT0iMzAiIHI9IjIiIGZpbGw9IiMxYjQzMzIiLz48Y2lyY2xlIGN4PSIzNiIgY3k9IjMwIiByPSIyIiBmaWxsPSIjMWI0MzMyIi8+PHBhdGggZD0iTTI2IDM2YzIgMiA2IDIgOCAwIiBzdHJva2U9IiMxYjQzMzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTM4IDI0bDYtNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=",
+      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzAiIGZpbGw9IiMyYzNlNTAiLz48cGF0aCBkPSJNMjAgMzJjMC02IDgtMTIgMTItMTJzMTIgNiAxMiAxMi04IDEyLTEyIDEyLTEyLTYtMTItMTJ6IiBmaWxsPSIjZWNmMGYxIi8+PGNpcmNsZSBjeD0iMjgiIGN5PSIzMCIgcj0iMiIgZmlsbD0iIzJjM2U1MCIvPjxjaXJjbGUgY3g9IjM2IiBjeT0iMzAiIHI9IjIiIGZpbGw9IiMyYzNlNTAiLz48cGF0aCBkPSJNMjYgMzZjMiAyIDYgMiA4IDAiIHN0cm9rZT0iIzJjM2U1MCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMzggMjRsNi00IiBzdHJva2U9IiNlY2YwZjEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+",
       "sizes": "192x192",
       "type": "image/svg+xml"
     }
