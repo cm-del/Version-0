@@ -14,10 +14,16 @@
   </style>
 </head>
 <body>
-  <div id="offlineBar" class="offline-bar" data-i18n="offline">أنت غير متصل بالإنترنت</div>
+  <div id="offlineBar" class="offline-bar">أنت غير متصل</div>
   <div id="alertBar" class="alert-bar" style="display:none"></div>
+  <div id="pinScreen" class="pin-screen" style="display:none">
+    <h2>🔐 أدخل الرمز</h2>
+    <input type="password" id="pinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+    <button onclick="submitPin()">دخول</button>
+    <p id="pinError" style="color:red;display:none">رمز خاطئ</p>
+  </div>
 
-  <div class="app-container">
+  <div class="app-container" id="appContainer" style="display:none">
     <header style="text-align:center;padding:12px 0 8px;">
       <svg class="app-logo" viewBox="0 0 64 64" fill="none">
         <circle cx="32" cy="32" r="30" fill="#2c3e50"/>
@@ -27,16 +33,16 @@
         <path d="M26 36c2 2 6 2 8 0" stroke="#2c3e50" stroke-width="2" stroke-linecap="round"/>
         <path d="M38 24l6-4" stroke="#ecf0f1" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <h1 style="display:inline;color:#2c3e50;font-size:1.4rem;" data-i18n="appName">مزرعة دواجن</h1>
+      <h1 style="display:inline;color:#2c3e50;font-size:1.4rem;">مزرعة دواجن</h1>
     </header>
     <main id="mainContent" class="main-content"></main>
 
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-tab="dashboard">🏠 <span data-i18n="home">الرئيسية</span></button>
-      <button class="nav-btn" data-tab="warehouse">🏭 <span data-i18n="warehouse">المخزن</span></button>
-      <button class="nav-btn" data-tab="loans">💰 <span data-i18n="loans">السلف</span></button>
-      <button class="nav-btn" data-tab="charts">📊 <span data-i18n="charts">الرسوم</span></button>
-      <button class="nav-btn" data-tab="more">⚙️ <span data-i18n="more">المزيد</span></button>
+      <button class="nav-btn active" data-tab="dashboard">🏠 الرئيسية</button>
+      <button class="nav-btn" data-tab="warehouse">🏭 المخزن</button>
+      <button class="nav-btn" data-tab="loans">💰 السلف</button>
+      <button class="nav-btn" data-tab="analytics">📈 تحليلات</button>
+      <button class="nav-btn" data-tab="more">⚙️ المزيد</button>
     </nav>
   </div>
 
@@ -44,13 +50,14 @@
   <div style="display:none" id="templates">
     <!-- اللوحة الرئيسية -->
     <div id="dashboardTemplate">
+      <div id="weatherWidget" style="text-align:center;margin-bottom:10px;font-size:0.9rem;"></div>
       <div id="dashboardContent"></div>
-      <button class="btn-block" onclick="showDailyEntry()" style="margin-top:15px">📋 <span data-i18n="dailyEntry">تسجيل يومي</span></button>
+      <button class="btn-block" onclick="showDailyEntry()" style="margin-top:15px">📋 تسجيل يومي</button>
     </div>
 
-    <!-- السجل اليومي -->
+    <!-- نموذج السجل اليومي -->
     <div id="dailyEntryTemplate" style="display:none;">
-      <button class="text-btn" onclick="showDashboard()">⬅ <span data-i18n="backToDashboard">رجوع للرئيسية</span></button>
+      <button class="text-btn" onclick="showDashboard()">⬅ رجوع</button>
       <div class="house-panel">
         <select id="houseSelect"></select>
         <button class="icon-btn" onclick="addHouse()">➕</button>
@@ -58,7 +65,7 @@
         <button class="icon-btn danger" onclick="deleteHouse()">🗑️</button>
       </div>
       <div class="cycle-panel">
-        <label data-i18n="cycle">الدورة:</label>
+        <label>الدورة:</label>
         <select id="cycleSelect"></select>
         <button class="icon-btn" onclick="editCycleDate()">📅</button>
       </div>
@@ -66,126 +73,123 @@
       <hr>
       <form id="dailyForm">
         <input type="hidden" id="editingId">
-        <label for="date" data-i18n="date">التاريخ</label>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:5px">
+          <button type="button" class="icon-btn" onclick="startVoiceInput()" title="إدخال صوتي">🎤</button>
+          <button type="button" class="icon-btn" onclick="startBarcodeScan('feedType')" title="مسح باركود">📷</button>
+        </div>
+        <label for="date">التاريخ</label>
         <input type="date" id="date" required>
-        <label for="feedType" data-i18n="feedType">نوع العلف</label>
+        <label for="feedType">نوع العلف</label>
         <select id="feedType" required>
-          <option value="starter" data-i18n="starter">بادي</option>
-          <option value="grower" data-i18n="grower">نامي</option>
-          <option value="finisher" data-i18n="finisher">ناهي</option>
+          <option value="starter">بادي</option>
+          <option value="grower">نامي</option>
+          <option value="finisher">ناهي</option>
         </select>
         <small id="feedStockHint"></small>
-        <label for="feedBags" data-i18n="feedBags">عدد الشكاير</label>
+        <label for="feedBags">عدد الشكاير</label>
         <input type="number" id="feedBags" step="any" value="0" min="0" required>
         <small id="feedEstimateHint"></small>
-        <label for="dead" data-i18n="dead">النافق اليوم</label>
+        <label for="dead">النافق اليوم</label>
         <input type="number" id="dead" value="0" min="0">
-        <label for="medications" data-i18n="medications">الأدوية</label>
+        <label for="medications">الأدوية</label>
         <input type="text" id="medications">
-        <label for="expenses" data-i18n="expenses">مصروفات (ج.م)</label>
+        <label for="expenses">مصروفات (ج.م)</label>
         <input type="number" id="expenses" step="any" value="0">
-        <label for="weight" data-i18n="weight">متوسط الوزن (جرام)</label>
+        <label for="weight">متوسط الوزن (جرام)</label>
         <input type="number" id="weight" step="any">
-        <label for="mortalityNotes" data-i18n="mortalityNotes">ملاحظات النافق</label>
+        <label for="mortalityNotes">ملاحظات النافق</label>
         <textarea id="mortalityNotes" rows="2"></textarea>
-        <button type="submit" id="formSubmitBtn">💾 <span data-i18n="save">حفظ</span></button>
-        <button type="button" id="cancelEditBtn" class="secondary" style="display:none" onclick="cancelEdit()" data-i18n="cancel">إلغاء</button>
+        <button type="submit" id="formSubmitBtn">💾 حفظ</button>
+        <button type="button" id="cancelEditBtn" class="secondary" style="display:none" onclick="cancelEdit()">إلغاء</button>
       </form>
       <div class="table-header">
-        <h3><span data-i18n="records">سجلات</span> <span id="currentHouseTitle"></span></h3>
+        <h3>سجلات <span id="currentHouseTitle"></span></h3>
         <div>
           <button class="text-btn" onclick="exportTableCSV()">📥 CSV</button>
           <button class="text-btn" onclick="exportTablePDF()">📄 PDF</button>
-          <button class="text-btn" onclick="toggleColumnPicker()">⚙️ <span data-i18n="columns">أعمدة</span></button>
+          <button class="text-btn" onclick="shareWhatsApp()">💬 واتساب</button>
+          <button class="text-btn" onclick="toggleColumnPicker()">⚙️ أعمدة</button>
         </div>
       </div>
       <div class="table-responsive">
         <table id="recordsTable"><thead id="recordsTableHead"></thead><tbody id="tableBody"></tbody></table>
       </div>
-      <div class="performance-box"><h4>📈 <span data-i18n="indicators">مؤشرات</span></h4><div id="performanceContent"></div></div>
+      <div class="performance-box"><h4>📈 مؤشرات</h4><div id="performanceContent"></div></div>
     </div>
 
     <!-- المخزن -->
     <div id="warehouseTemplate">
-      <h2>🏭 <span data-i18n="warehouse">مخزن الأعلاف</span></h2>
+      <h2>🏭 مخزن الأعلاف</h2>
       <div id="warehouseStock"></div>
+      <button class="icon-btn" onclick="startBarcodeScan('whType')">📷 مسح باركود</button>
       <hr>
       <form id="warehouseForm">
-        <label for="whType" data-i18n="feedType">نوع العلف</label>
+        <label for="whType">نوع العلف</label>
         <select id="whType">
-          <option value="starter" data-i18n="starter">بادي</option>
-          <option value="grower" data-i18n="grower">نامي</option>
-          <option value="finisher" data-i18n="finisher">ناهي</option>
+          <option value="starter">بادي</option>
+          <option value="grower">نامي</option>
+          <option value="finisher">ناهي</option>
         </select>
-        <label for="whBags" data-i18n="feedBags">عدد الشكاير</label>
+        <label for="whBags">عدد الشكاير</label>
         <input type="number" id="whBags" min="1" value="1" required>
-        <button type="submit">➕ <span data-i18n="addToWarehouse">إضافة للمخزن</span></button>
+        <button type="submit">➕ إضافة للمخزن</button>
       </form>
     </div>
 
     <!-- السلف -->
     <div id="loansTemplate">
-      <h2>💰 <span data-i18n="loans">سلف أسبوعية</span></h2>
+      <h2>💰 سلف أسبوعية</h2>
       <form id="loanForm">
         <input type="hidden" id="editingLoanId">
-        <label for="loanDate" data-i18n="date">التاريخ</label><input type="date" id="loanDate" required>
-        <label for="loanPerson" data-i18n="person">اسم الشخص</label><input type="text" id="loanPerson" required>
-        <label for="loanAmount" data-i18n="amount">المبلغ (ج.م)</label><input type="number" id="loanAmount" step="any" required>
-        <button type="submit" id="loanSubmitBtn">💾 <span data-i18n="save">حفظ</span></button>
-        <button type="button" id="cancelLoanEditBtn" class="secondary" style="display:none" onclick="cancelLoanEdit()" data-i18n="cancel">إلغاء</button>
+        <label for="loanDate">التاريخ</label><input type="date" id="loanDate" required>
+        <label for="loanPerson">اسم الشخص</label><input type="text" id="loanPerson" required>
+        <label for="loanAmount">المبلغ (ج.م)</label><input type="number" id="loanAmount" step="any" required>
+        <button type="submit" id="loanSubmitBtn">💾 حفظ</button>
+        <button type="button" id="cancelLoanEditBtn" class="secondary" style="display:none" onclick="cancelLoanEdit()">إلغاء</button>
       </form>
-      <h3 data-i18n="allLoans">جميع السلفات</h3>
-      <table id="loansTable"><thead><tr><th data-i18n="date">التاريخ</th><th data-i18n="person">الشخص</th><th data-i18n="amount">المبلغ</th><th data-i18n="edit">تعديل</th><th data-i18n="delete">حذف</th></tr></thead><tbody id="loansBody"></tbody></table>
+      <h3>جميع السلفات</h3>
+      <table id="loansTable"><thead><tr><th>التاريخ</th><th>الشخص</th><th>المبلغ</th><th>تعديل</th><th>حذف</th></tr></thead><tbody id="loansBody"></tbody></table>
     </div>
 
-    <!-- الرسوم البيانية -->
-    <div id="chartsTemplate">
-      <h2>📊 <span data-i18n="charts">الرسوم البيانية</span></h2>
-      <div class="chart-controls">
-        <label data-i18n="house">العنبر:</label>
-        <select id="chartHouseSelect"></select>
-        <div id="cycleComparison">
-          <label data-i18n="cycle1">الدورة 1:</label><select id="cycle1Select"></select>
-          <label data-i18n="cycle2">الدورة 2 (اختياري):</label><select id="cycle2Select"><option value="">لا مقارنة</option></select>
-        </div>
-        <label for="chartType" data-i18n="chartType">نوع الرسم:</label>
-        <select id="chartType"><option value="weight" data-i18n="weight">الوزن</option><option value="dead" data-i18n="dead">النافق</option><option value="feed" data-i18n="feed">العلف (كجم)</option></select>
-      </div>
-      <canvas id="myChart" width="300" height="200"></canvas>
+    <!-- تحليلات -->
+    <div id="analyticsTemplate">
+      <h2>📈 تحليلات متقدمة</h2>
+      <div id="analyticsContent">اختر عنبراً ودورة</div>
     </div>
 
-    <!-- المزيد (الإعدادات) -->
+    <!-- المزيد (الإعدادات + الميزات) -->
     <div id="moreTemplate">
-      <h2>⚙️ <span data-i18n="settings">الإعدادات</span></h2>
-      <div class="settings-section">
-        <h3 data-i18n="language">اللغة</h3>
-        <select id="languageSelect" onchange="changeLanguage(this.value)">
-          <option value="ar">العربية</option>
-          <option value="en">English</option>
-        </select>
-        <h3 data-i18n="voiceInput">الإدخال الصوتي</h3>
-        <button id="voiceBtn" onclick="toggleVoice()" class="btn-block">🎤 <span data-i18n="startVoice">بدء الإدخال الصوتي</span></button>
-      </div>
+      <h2>⚙️ الإعدادات والميزات</h2>
+      <button class="btn-block" onclick="setupPin()">🔐 تغيير رمز PIN</button>
+      <button class="btn-block" onclick="startOCR()">📄 OCR مسح فاتورة</button>
+      <button class="btn-block" onclick="startSync()">🔄 مزامنة مع جهاز آخر</button>
       <hr>
-      <button class="btn-block" onclick="exportAllData()">💾 <span data-i18n="exportAll">تصدير كل البيانات</span></button>
-      <button class="btn-block" onclick="document.getElementById('importFile').click()">📂 <span data-i18n="importData">استيراد بيانات</span></button>
+      <button class="btn-block" onclick="exportAllData()">💾 تصدير كل البيانات</button>
+      <button class="btn-block" onclick="document.getElementById('importFile').click()">📂 استيراد بيانات</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(event)">
-      <button class="btn-block" onclick="showQRExport()">📱 <span data-i18n="shareQR">مشاركة عبر QR</span></button>
-      <button class="btn-block" onclick="startQRImport()">📷 <span data-i18n="scanQR">مسح QR لاستيراد</span></button>
+      <button class="btn-block" onclick="showQRExport()">📱 مشاركة عبر QR</button>
+      <button class="btn-block" onclick="startQRImport()">📷 مسح QR لاستيراد</button>
       <div id="qrContainer" style="text-align:center;margin-top:10px;"></div>
       <div id="reader" style="width:300px;margin:10px auto;"></div>
       <hr>
-      <button class="btn-block danger" onclick="clearAllData()">🗑️ <span data-i18n="clearAll">مسح جميع البيانات</span></button>
-      <button class="btn-block" id="installBtn" style="display:none" onclick="installApp()">📲 <span data-i18n="installApp">تثبيت التطبيق</span></button>
+      <div id="syncStatus" style="margin:10px 0"></div>
+      <button class="btn-block danger" onclick="clearAllData()">🗑️ مسح جميع البيانات</button>
+      <button class="btn-block" id="installBtn" style="display:none" onclick="installApp()">📲 تثبيت التطبيق</button>
+    </div>
+
+    <!-- الجدول الزمني -->
+    <div id="timelineTemplate">
+      <h2>⏳ الجدول الزمني للدورة</h2>
+      <div id="timelineContent"></div>
     </div>
   </div>
 
   <!-- نافذة اختيار الأعمدة -->
   <div id="columnPickerModal" class="modal" style="display:none">
     <div class="modal-content">
-      <h3 data-i18n="selectColumns">اختر الأعمدة</h3>
+      <h3>اختر الأعمدة</h3>
       <div id="columnChecks"></div>
-      <button class="btn-block" onclick="applyColumns()" data-i18n="done">تم</button>
+      <button class="btn-block" onclick="applyColumns()">تم</button>
     </div>
   </div>
 
@@ -199,19 +203,34 @@
       </div>
       <div class="date-picker-grid" id="dateGrid"></div>
       <div class="date-picker-actions">
-        <button id="clearDateBtn" class="secondary" data-i18n="cancel">إلغاء</button>
-        <button id="confirmDateBtn" data-i18n="confirm">تأكيد</button>
+        <button id="clearDateBtn" class="secondary">إلغاء</button>
+        <button id="confirmDateBtn">تأكيد</button>
       </div>
+    </div>
+  </div>
+
+  <!-- OCR result -->
+  <div id="ocrModal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h3>نتيجة OCR</h3>
+      <textarea id="ocrText" rows="5" style="width:100%"></textarea>
+      <button onclick="parseOCRText()">استخراج البيانات</button>
+      <button class="secondary" onclick="document.getElementById('ocrModal').style.display='none'">إغلاق</button>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <script src="script.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+        Notification.requestPermission();
+      });
     }
   </script>
 </body>
