@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إدارة مزرعة الدواجن - متعدد العنابر ومخزن أعلاف</title>
+  <title>إدارة مزرعة الدواجن - احترافي</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2d6a4f">
 </head>
 <body>
   <div class="container">
@@ -13,15 +14,16 @@
 
     <!-- التبويبات -->
     <div class="tabs">
-      <button id="tabDaily" class="tab active" onclick="showTab('daily')">📋 اليومي</button>
-      <button id="tabWarehouse" class="tab" onclick="showTab('warehouse')">🏭 المخزن</button>
-      <button id="tabLoans" class="tab" onclick="showTab('loans')">💰 السلف</button>
-      <button id="tabCharts" class="tab" onclick="showTab('charts')">📊 الرسوم</button>
+      <button class="tab active" onclick="showTab('daily')">📋 اليومي</button>
+      <button class="tab" onclick="showTab('warehouse')">🏭 المخزن</button>
+      <button class="tab" onclick="showTab('loans')">💰 السلف</button>
+      <button class="tab" onclick="showTab('charts')">📊 الرسوم</button>
+      <button class="tab" onclick="showTab('reports')">📈 التقارير</button>
+      <button class="tab" onclick="showTab('settings')">⚙️ الإعدادات</button>
     </div>
 
     <!-- ========== تبويب السجل اليومي ========== -->
     <div id="dailySection" class="section">
-      <!-- اختيار وإدارة العنابر -->
       <div class="house-panel">
         <label>العنبر:</label>
         <select id="houseSelect"></select>
@@ -32,20 +34,20 @@
 
       <hr>
 
-      <!-- نموذج الإدخال اليومي -->
       <form id="dailyForm">
+        <input type="hidden" id="editingId" value="">
         <label for="date">التاريخ</label>
         <input type="date" id="date" required>
 
         <label for="feedType">نوع العلف</label>
         <select id="feedType" required>
-          <option value="starter">بادي (بادئ)</option>
+          <option value="starter">بادي</option>
           <option value="grower">نامي</option>
           <option value="finisher">ناهي</option>
         </select>
         <small id="feedStockHint" style="color:#2d6a4f;"></small>
 
-        <label for="feedBags">عدد الشكاير المصروفة</label>
+        <label for="feedBags">عدد الشكاير</label>
         <input type="number" id="feedBags" step="any" value="0" min="0" required>
 
         <label for="dead">النافق اليوم</label>
@@ -63,11 +65,18 @@
         <label for="mortalityNotes">ملاحظات النافق</label>
         <textarea id="mortalityNotes" rows="2" placeholder="سبب النافق..."></textarea>
 
-        <button type="submit">💾 حفظ السجل</button>
+        <button type="submit" id="formSubmitBtn">💾 حفظ السجل</button>
+        <button type="button" id="cancelEditBtn" style="display:none; background:#e76f51;" onclick="cancelEdit()">إلغاء التعديل</button>
       </form>
 
-      <!-- جدول السجلات اليومية للعنبر المختار -->
-      <h3>آخر السجلات - <span id="currentHouseTitle"></span></h3>
+      <div class="table-actions">
+        <h3>آخر السجلات - <span id="currentHouseTitle"></span></h3>
+        <div>
+          <button class="btn-sm" onclick="exportTableCSV()">📥 CSV</button>
+          <button class="btn-sm" onclick="printTable()">🖨️ PDF</button>
+        </div>
+      </div>
+
       <table id="recordsTable">
         <thead>
           <tr>
@@ -81,13 +90,13 @@
             <th>مصروفات</th>
             <th>الوزن</th>
             <th>ملاحظات</th>
+            <th>تعديل</th>
             <th>حذف</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
       </table>
 
-      <!-- ملخص الأداء للعنبر المختار -->
       <div class="performance-box" id="performanceBox">
         <h4>📈 مؤشرات الأداء</h4>
         <div id="performanceContent">اختر عنبرًا لعرض المؤشرات</div>
@@ -96,7 +105,7 @@
 
     <!-- ========== تبويب المخزن ========== -->
     <div id="warehouseSection" class="section" style="display:none;">
-      <h2>🏭 مخزن الأعلاف (الشكاير)</h2>
+      <h2>🏭 مخزن الأعلاف</h2>
       <div id="warehouseStock"></div>
       <hr>
       <h3>إضافة أعلاف للمخزن</h3>
@@ -115,19 +124,21 @@
 
     <!-- ========== تبويب السلف ========== -->
     <div id="loansSection" class="section" style="display:none;">
-      <h2>💰 سلف أسبوعية (كل جمعة)</h2>
+      <h2>💰 سلف أسبوعية</h2>
       <form id="loanForm">
+        <input type="hidden" id="editingLoanId" value="">
         <label for="loanDate">التاريخ</label>
         <input type="date" id="loanDate" required>
         <label for="loanPerson">اسم الشخص</label>
         <input type="text" id="loanPerson" placeholder="اسم العامل" required>
         <label for="loanAmount">المبلغ (ج.م)</label>
         <input type="number" id="loanAmount" step="any" required>
-        <button type="submit">💾 حفظ السلفة</button>
+        <button type="submit" id="loanSubmitBtn">💾 حفظ السلفة</button>
+        <button type="button" id="cancelLoanEditBtn" style="display:none; background:#e76f51;" onclick="cancelLoanEdit()">إلغاء</button>
       </form>
       <h3>جميع السلفات</h3>
       <table id="loansTable">
-        <thead><tr><th>التاريخ</th><th>الشخص</th><th>المبلغ</th><th>حذف</th></tr></thead>
+        <thead><tr><th>التاريخ</th><th>الشخص</th><th>المبلغ</th><th>تعديل</th><th>حذف</th></tr></thead>
         <tbody id="loansBody"></tbody>
       </table>
     </div>
@@ -147,8 +158,32 @@
       </div>
       <canvas id="myChart" width="300" height="200"></canvas>
     </div>
+
+    <!-- ========== تبويب التقارير ========== -->
+    <div id="reportsSection" class="section" style="display:none;">
+      <h2>📈 تقارير الأداء</h2>
+      <div id="reportsContent">تحميل...</div>
+    </div>
+
+    <!-- ========== تبويب الإعدادات ========== -->
+    <div id="settingsSection" class="section" style="display:none;">
+      <h2>⚙️ إدارة البيانات</h2>
+      <button class="btn-block" onclick="exportAllData()">💾 تصدير جميع البيانات (JSON)</button>
+      <button class="btn-block" onclick="document.getElementById('importFile').click()">📂 استيراد بيانات (JSON)</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(event)">
+      <button class="btn-block danger" onclick="clearAllData()">🗑️ مسح جميع البيانات</button>
+      <hr>
+      <button class="btn-block" id="installBtn" style="display:none" onclick="installApp()">📲 تثبيت التطبيق</button>
+    </div>
   </div>
 
   <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
 </body>
 </html>

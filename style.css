@@ -10,10 +10,10 @@ h1 { text-align: center; color: #2d6a4f; margin-bottom: 10px; }
 h2 { color: #2d6a4f; margin-top: 0; }
 .container { max-width: 650px; margin: 0 auto; }
 
-/* تبويبات */
+/* التبويبات */
 .tabs {
   display: flex;
-  justify-content: space-around;
+  flex-wrap: wrap;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -21,13 +21,14 @@ h2 { color: #2d6a4f; margin-top: 0; }
   overflow: hidden;
 }
 .tab {
-  flex: 1;
-  padding: 10px 4px;
+  flex: 1 1 auto;
+  padding: 10px 6px;
   border: none;
   background: #e9ecef;
   font-weight: bold;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  text-align: center;
 }
 .tab.active { background: #2d6a4f; color: #fff; }
 
@@ -54,6 +55,7 @@ h2 { color: #2d6a4f; margin-top: 0; }
   border: none;
   border-radius: 6px;
   font-size: 0.8rem;
+  cursor: pointer;
 }
 .info-box { font-size: 0.9rem; background: #e9f5ee; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
 
@@ -66,7 +68,7 @@ input, textarea, select {
   border-radius: 6px;
   font-size: 1rem;
 }
-button[type="submit"] {
+button[type="submit"], .btn-block {
   background: #2d6a4f;
   color: white;
   border: none;
@@ -77,8 +79,8 @@ button[type="submit"] {
   width: 100%;
   cursor: pointer;
 }
+.danger { background: #e63946; }
 
-/* جداول */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -98,11 +100,26 @@ button.delete-btn {
   padding: 4px 7px;
   border-radius: 4px;
 }
+button.edit-btn {
+  background: #118ab2;
+  color: white;
+  border: none;
+  padding: 4px 7px;
+  border-radius: 4px;
+}
+
+.table-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
 
 /* المخزن */
 #warehouseStock { font-size: 0.95rem; margin-bottom: 10px; }
 
-/* ملخص الأداء */
+/* الأداء */
 .performance-box {
   background: #f0fdf4;
   border: 1px solid #2d6a4f;
@@ -110,7 +127,9 @@ button.delete-btn {
   padding: 12px;
   margin-top: 20px;
 }
-.performance-box h4 { margin: 0 0 8px 0; }
 
 .chart-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
 canvas { width: 100% !important; height: auto !important; }
+
+/* أزرار الإعدادات */
+.btn-block + .btn-block { margin-top: 10px; }
