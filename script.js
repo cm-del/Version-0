@@ -1,5 +1,5 @@
 // ========== IndexedDB ==========
-const DB_NAME = 'PoultryFarmDBv7';
+const DB_NAME = 'PoultryFarmDBv8';
 const STORE_NAME = 'appState';
 
 function openDB() {
