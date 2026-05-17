@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة مزرعة دواجن التسمين</title>
+  <!-- ربط ملف التنسيق الخارجي -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🐔 مزرعة دواجن التسمين</h1>
+
+    <!-- ملخص سريع -->
+    <div class="summary" id="summary">
+      <strong>الإجماليات:</strong>
+      <p>إجمالي النافق: <span id="totalDead">0</span> طائر</p>
+      <p>إجمالي العلف المستهلك: <span id="totalFeed">0</span> كجم</p>
+      <p>إجمالي التكاليف الأخرى: <span id="totalCost">0</span> ج.م</p>
+    </div>
+
+    <!-- نموذج إدخال البيانات -->
+    <form id="dataForm">
+      <h3>إضافة سجل يومي</h3>
+      <label for="date">التاريخ</label>
+      <input type="date" id="date" required>
+
+      <label for="birdsCount">عدد الطيور المتبقية</label>
+      <input type="number" id="birdsCount" placeholder="أدخل العدد" required>
+
+      <label for="dead">النافق اليوم</label>
+      <input type="number" id="dead" value="0" min="0">
+
+      <label for="weight">متوسط وزن الطائر (جرام)</label>
+      <input type="number" id="weight" step="any" placeholder="مثال: 1800">
+
+      <label for="feed">كمية العلف المستهلكة (كجم)</label>
+      <input type="number" id="feed" step="any" value="0">
+
+      <label for="cost">تكاليف أخرى (ج.م)</label>
+      <input type="number" id="cost" step="any" value="0">
+
+      <label for="notes">ملاحظات</label>
+      <textarea id="notes" rows="2" placeholder="أي ملاحظات..."></textarea>
+
+      <button type="submit">حفظ السجل</button>
+    </form>
+
+    <!-- جدول السجلات -->
+    <h3>السجلات اليومية</h3>
+    <table id="recordsTable">
+      <thead>
+        <tr>
+          <th>التاريخ</th>
+          <th>العدد</th>
+          <th>النافق</th>
+          <th>الوزن</th>
+          <th>العلف</th>
+          <th>التكاليف</th>
+          <th>ملاحظات</th>
+          <th>حذف</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- الصفوف هتضاف هنا ديناميكيا -->
+      </tbody>
+    </table>
+
+    <div class="action-btns">
+      <button onclick="clearAll()" style="background:#e76f51;">مسح كل البيانات</button>
+    </div>
+  </div>
+
+  <!-- ربط ملف الجافا سكريبت الخارجي -->
+  <script src="script.js"></script>
+</body>
+</html>
